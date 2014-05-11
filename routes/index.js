@@ -107,14 +107,16 @@ router.post('/local_scan', function(req, res) {
 		});
 	}
 
-	console.log("Post: %j", req.body )
 	var needed_characters = []
 	var characterSheets = []
-	var all_characters = req.body.scan.split("\n").map( function(x) { return x.trim() });
+	var all_characters = req.body.scan.split("\n").map( function(x) { return x.trim() }).filter( function(x) { return x.length > 0 });
 
 	if( all_characters.length == 0 ) {
+		console.log("empty: %j", all_characters )
 		res.redirect('/?section=local')
+		return;
 	}
+	console.log("Post: %j", all_characters )
 
 	mysql_pool.query("select * from localscan.character_sheets.ddl where characterName in (?)", all_characters, function(e,matched) {
 		var character_sheets_cache = {}
