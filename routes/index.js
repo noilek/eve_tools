@@ -112,6 +112,10 @@ router.post('/local_scan', function(req, res) {
 	var characterSheets = []
 	var all_characters = req.body.scan.split("\n").map( function(x) { return x.trim() });
 
+	if( all_characters.length == 0 ) {
+		res.redirect('/?section=local')
+	}
+
 	mysql_pool.query("select * from localscan.character_sheets.ddl where characterName in (?)", all_characters, function(e,matched) {
 		var character_sheets_cache = {}
 		for (rowidx in matched) {
