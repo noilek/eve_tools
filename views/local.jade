@@ -1,0 +1,184 @@
+mixin render_alliances_graph(alliances, alliance_names, counts, ids)
+	- var chart_id = locals.uuid()
+	div(id=chart_id, width="100%", height="500px") foo
+
+	script(src='//code.highcharts.com/highcharts.js')
+	script(src='//code.highcharts.com/modules/exporting.js')
+
+	script.
+		$(function () {         
+			var counts = !{JSON.stringify(counts)},
+				sorted_alliance_names = !{JSON.stringify(alliance_names)},
+				alliances = !{JSON.stringify(alliances)},
+				colors = Highcharts.getOptions().colors;
+			
+			var alliance_data = [];
+			var corp_data = [];
+			var total_corps_rendered = 0;
+			var max_corps_rendered = colors.length * 4;
+			for( var alliance_idx in sorted_alliance_names) {
+				if( alliance_idx < colors.length) {
+					var alliance = sorted_alliance_names[alliance_idx];
+					alliance_data.push( {
+						name:(alliance_idx == colors.length - 1 ? "Other" : alliance),
+						y:counts.alliances[alliance],
+						color:colors[alliance_idx % colors.length]
+					});
+				} else {
+					alliance_data[alliance_data.length-1].y = alliance_data[alliance_data.length-1].y + counts.alliances[alliance]
+				}
+				var alliance_color = alliance_data[alliance_data.length-1].color;
+
+				var corps = alliances[alliance];
+				var corp_names = Object.keys(corps);
+				corp_names.sort(function(a,b) { return counts.corps[a] < counts.corps[b] ? 1 : (counts.corps[a] == counts.corps[b] ? a.localeCompare(b) : -1) })
+				for( var corp_idx in corp_names) {
+					if(total_corps_rendered < max_corps_rendered) {
+						var corp_name = corp_names[corp_idx];
+						corp_data.push( {
+							name:(total_corps_rendered == max_corps_rendered - 1 ? "Other" : corp_name),
+							y: counts.corps[corp_name],
+							color:Highcharts.Color(alliance_color).brighten(.5*corp_idx/corp_names.length).get(),
+						});
+					} else {
+						corp_data[corp_data.length-1].y = corp_data[corp_data.length-1].y + counts.corps[corp_name]
+					}
+					total_corps_rendered++;
+				}
+			}
+
+			// Create the chart
+			var chart;
+			$(document).ready(function() {
+				chart = new Highcharts.Chart({
+					chart: {
+						type: 'pie',
+						renderTo:'#{chart_id}'
+					},
+					title: {
+						text: '#{locals.system} Local Scan'
+					},
+					yAxis: {
+						title: {
+							text: 'Total percent market share'
+						}
+					},
+					plotOptions: {
+						pie: {
+							shadow: false,
+							center: ['50%', '50%']
+						}
+					},
+					tooltip: {
+						valueSuffix: ' '
+					},
+					series: [{
+						name: 'Pilots',
+						data: alliance_data,
+						size: '60%',
+						dataLabels: {
+							formatter: function() {
+								return this.y > 5 ? this.point.name : null;
+							},
+							color: 'white',
+							distance: -50
+						}
+					}, {
+						name: 'Pilots',
+						data: corp_data,
+						size: '80%',
+						innerSize: '60%',
+						dataLabels: {
+							formatter: function() {
+								// display only if larger than 1
+								return this.y > 1 ? '<b>'+ this.point.name +':</b> '+ this.y + ' Pilots'  : null;
+							}
+						}
+					}]
+				});
+			});
+		});
+
+mixin render_pilot(pilot, pilot_id)
+	tr
+		td
+			= pilot
+		td
+			a(href="https://zkillboard.com/character/#{pilot_id}") zKb
+		td
+			a(href="http://evewho.com/pilot/#{encodeURIComponent(pilot)}") evewho
+		td
+			a(href="http://eve-search.com/search/author/#{encodeURIComponent(pilot)}") search
+
+mixin render_alliances_table(alliances, alliance_names, counts, ids)
+	#accordian.panel-group
+		each alliance in alliance_names
+			- var alliance_uuid = locals.uuid()
+			.row
+				.col-md-8
+					.panel.panel-success
+						.panel-heading
+							
+							a(href="##{alliance_uuid}", data-toggle="collapse", data-parent="#accordian")
+								span.glyphicon.glyphicon-chevron-right
+								= alliance 
+								span.badge.pull-right= counts.alliances[alliance]
+						- var corp_names = Object.keys(alliances[alliance])
+						- corp_names.sort(function(a,b) { return counts.corps[a] < counts.corps[b] ? 1 : (counts.corps[a] == counts.corps[b] ? a.localeCompare(b) : -1) })
+						.panel-collapse.collapse(id="#{alliance_uuid}")
+							each corp in corp_names
+								- var corp_uuid = locals.uuid()
+								.row
+									.col-md-10.col-md-offset-2
+										.panel.panel-info
+											.panel-heading
+												
+												a(href="##{corp_uuid}", data-toggle="collapse", data-parent="#accordian")
+													span.glyphicon.glyphicon-chevron-right
+													= corp 
+													span.badge.pull-right= counts.corps[corp]
+											- var pilots = alliances[alliance][corp]
+											- pilots.sort()
+											.panel-collapse.collapse(id="#{corp_uuid}")
+												table.table.table-striped
+													tbody
+														each pilot in pilots
+															+render_pilot(pilot, ids[pilot])
+
+
+mixin render_alliances(alliances, unaligned, counts, ids)
+	- var alliance_names = Object.keys(alliances)
+	- alliance_names.sort( function(a,b) { return counts.alliances[a] < counts.alliances[b] ? 1 : (counts.alliances[a] == counts.alliances[b] ? a.localeCompare(b) : -1) } )
+	- alliance_names.push( "Unaligned" )
+	- alliances["Unaligned"] = unaligned
+	- var unaligned_corps = Object.keys(unaligned)
+	- var count = unaligned_corps.reduce( function( p, c, i, a ) { return p + counts.corps[c] }, 0)
+	- counts.alliances["Unaligned"] = count
+
+	+render_alliances_graph( alliances, alliance_names, counts, ids )
+
+	.row
+		.col-md-6
+			+render_alliances_table( alliances, alliance_names, counts, ids )
+		.col-md-6
+
+mixin default_page()
+	form.form-horizontal(action="/local_scan?section=local" method="post")
+		.form-group
+			label.col-sm-2.control-label System
+			.col-sm-10
+				input(type="text", name="system", value=locals.headers['eve_solarsystemname'], class="form-control")
+		.form-group
+			label.col-sm-2.control-label Local Paste
+			.col-sm-10
+				textarea.form-control(rows=10, name="scan")
+		.form-group
+			.col-sm-offset-2.col-sm-10
+				button(type="submit", class="btn btn-primary") Scan Local
+
+mixin local()
+	#base
+		if typeof(locals.scan) == "undefined"
+			+default_page()
+		else		
+			+render_alliances(locals.scan.alliances, locals.scan.unaligned, locals.scan.counts, locals.scan.ids)

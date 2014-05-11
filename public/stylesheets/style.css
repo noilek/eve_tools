@@ -1,0 +1,37 @@
+@import url("http://fonts.googleapis.com/css?family=Anton");
+body {
+  padding: 50px;
+  font: 14px "Lucida Grande", Helvetica, Arial, sans-serif;
+}
+.navbar-inner {
+  background-color: #345566;
+}
+.nav.navbar-nav > li > a {
+  color: #fff;
+}
+.nav.navbar-nav > li > a:hover {
+  color: #fff;
+  background: #999;
+}
+.navbar-inverse .navbar-brand {
+  font-family: 'Anton', sans-serif;
+  color: #abcdef;
+}
+.navbar-inverse .navbar-brand:hover {
+  color: #fff;
+}
+.foo-old {
+  color: #fff;
+  font: ;
+  padding: 10px 19px;
+  -webkit-border-radius: 5px;
+  border-radius: 5px;
+  background: #abcdef;
+}
+.foo {
+  background: -webkit-linear-gradient(top, #abcdef, #6abcde);
+  background: -moz-linear-gradient(top, #abcdef, #6abcde);
+  background: -o-linear-gradient(top, #abcdef, #6abcde);
+  background: -ms-linear-gradient(top, #abcdef, #6abcde);
+  background: linear-gradient(to bottom, #abcdef, #6abcde);
+}

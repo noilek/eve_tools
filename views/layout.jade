@@ -1,0 +1,13 @@
+doctype html
+html
+  head
+    title= title
+    link(rel='stylesheet', href='//netdna.bootstrapcdn.com/bootstrap/3.1.1/css/bootstrap.min.css')
+    link(rel='stylesheet', href='/stylesheets/style.css')
+
+    script(src='//code.jquery.com/jquery-1.8.2.min.js')
+    script(src='//netdna.bootstrapcdn.com/bootstrap/3.1.1/js/bootstrap.min.js')
+
+  body(onload="if( typeof(CCPEVE) != 'undefined') CCPEVE.requestTrust('http://localhost:8080')")
+
+    block content
