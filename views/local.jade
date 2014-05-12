@@ -72,15 +72,19 @@ mixin render_alliances_graph(alliances, alliance_names, counts, ids)
 				chart = new Highcharts.Chart({
 					chart: {
 						type: 'pie',
-						renderTo:'#{chart_id}'
-					},
-					title: {
-						text: '#{locals.system} Local Scan'
+						renderTo:'#{chart_id}',
+						shadow: true,
+						spacing: [0,5,5,5],
+						margin: [0,0,0,0],
+						height:500
 					},
 					yAxis: {
 						title: {
 							text: 'Total percent market share'
 						}
+					},
+					title: {
+						text:''
 					},
 					plotOptions: {
 						pie: {
@@ -134,7 +138,7 @@ mixin render_alliances_table(alliances, alliance_names, counts, ids)
 		each alliance in alliance_names
 			- var alliance_uuid = locals.uuid()
 			.row
-				.col-md-8
+				.col-md-12
 					.panel.panel-success
 						.panel-heading
 							
@@ -176,10 +180,7 @@ mixin render_alliances(alliances, unaligned, counts, ids)
 
 	+render_alliances_graph( alliances, alliance_names, counts, ids )
 
-	.row
-		.col-md-6
-			+render_alliances_table( alliances, alliance_names, counts, ids )
-		.col-md-6
+	+render_alliances_table( alliances, alliance_names, counts, ids )
 
 mixin default_page()
 	form.form-horizontal(action="/local_scan?section=local" method="post")
