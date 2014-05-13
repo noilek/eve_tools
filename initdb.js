@@ -1,4 +1,5 @@
 var fs = require('fs')
+var logger = require('./logger')
 
 module.exports = (function(pool) {
 	var databases = [
@@ -18,13 +19,17 @@ module.exports = (function(pool) {
 		initialize_tables: function(callback) {
 			var err = {}, res = {}			
 			databases.forEach(function(database) {
-				pool.query("create database if not exists ??", database);
+				pool.query("create database if not exists ??", database, function( e, r ) {
+					if(e) {
+						throw e
+					}
+				});
 			})
 			tables.forEach( function( table ) {
 				pool.query("select 1 from " + table + " where 1=0", function( e, r ) {
 					if(e && e.errno == 1146) {
 						var table_ddl = readDDL(table)
-						console.log("creating table %s", table)
+						logger.info("creating table %s", table)
 						pool.query(table_ddl, function( e, r ) {
 							err[table] = e
 							res[table] = r
@@ -33,7 +38,6 @@ module.exports = (function(pool) {
 							}
 						})
 					} else {
-						console.log( "%s already exists", table)
 						res[table] = {}
 						err[table] = {}
 						if(Object.keys(res).length == tables.length) {

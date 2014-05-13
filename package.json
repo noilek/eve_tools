@@ -21,6 +21,9 @@
     "bootstrap3-stylus": "0.1.0",
     "request": "2.34.0",
     "node-uuid": "1.4.1",
-    "MD5": "1.2.1"
+    "MD5": "1.2.1",
+    "supervisor": "0.6.0",
+    "winston": "0.7.3",
+    "winston-mail": "0.2.7"
   }
 }

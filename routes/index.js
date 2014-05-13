@@ -3,10 +3,16 @@ var request = require('request');
 var xml2js = require('xml2js');
 var uuid = require('node-uuid').v4;
 var md5 = require('MD5');
+var mysql = require('mysql')
+
+var logger = require('../logger')
+
 var router = express.Router();
+
 
 /* GET home page. */
 router.get('/', function(req, res) {
+	logger.info('query="%s" : ip="%s"', req.path, req.ip )	
 	res.render('index', { section: req.query.section, headers: req.headers} );
 });
 
@@ -14,6 +20,7 @@ var character_sheets_cache = {};
 var local_scan_cache = {}
 
 router.get('/local_render', function(req, res) {
+	logger.info('query="%s" : scan="%s" : ip="%s"', req.path, req.query.scan_id, req.ip )
 	function final( foundSheets ) {
 		var alliances = {};
 		var unaligned = {};
@@ -59,7 +66,8 @@ router.get('/local_render', function(req, res) {
 				},
 				ids: ids
 			},
-			uuid: uuid
+			uuid: uuid,
+			logger: logger
 		} );
 	};
 
@@ -77,52 +85,67 @@ router.post('/local_scan', function(req, res) {
 		var scan_date = new Date()
 		all_characters.sort()
 		var scan_id = md5(all_characters.join())
-		sheets_to_cache = sheets_to_cache.map( function(x) { x['retrieved'] = scan_date; return x });
-		var scan_rows = sheets_to_cache.map( function(x) { return { character_id: x.character_id, scan_date: scan_date, scan_id: scan_id } });
-		mysql_pool.getConnection(function(err, conn) {
-			var results = []
-			function end( err, query_res ) {
-				results.push(query_res)
-				if(results.length == sheets_to_cache.length + scan_rows.length) {
-					console.log("%d %d %d", results.length, sheets_to_cache.length, scan_rows.length)
-					conn.commit(function(err) {
-						if(err) {
-							conn.rollback();
-						}
-						conn.release();
-						res.redirect('/local_render?section=local&scan_id=' + scan_id)
-					});
-				}
-			}
+		logger.info(
+				'query="%s" : characters="%d" : queried="%d" : scan="%s" : ip="%s"', 
+				req.path, all_characters.length, sheets_to_cache.length, scan_id, req.ip 
+		)
+		var endpoint = '/local_render?section=local&scan_id=' + scan_id;
 
-			conn.beginTransaction(function(err) {
-				sheets_to_cache.forEach(function(sheet) {
-					conn.query( "insert into localscan.character_sheets set ?", sheet, end );
-				} );
-				scan_rows.forEach(function(scan_row) {
-					console.log("%j", scan_row)
-					conn.query( "insert into localscan.scan_history set ?", scan_row, end );
+		if( sheets_to_cache.length > 0 ) {
+			sheets_to_cache = sheets_to_cache.map( function(x) { x['retrieved'] = scan_date; return x });
+			var scan_rows = sheets_to_cache.map( function(x) { return { character_id: x.character_id, scan_date: scan_date, scan_id: scan_id } });		
+			mysql_pool.getConnection(function(err, conn) {
+				var results = []
+				function end( err, query_res ) {
+					results.push(query_res)
+					if(results.length == sheets_to_cache.length + scan_rows.length) {
+						conn.commit(function(err) {
+							if(err) {
+								conn.rollback();
+							}
+							conn.release();
+							res.redirect(endpoint)
+						});
+					}
+				}
+
+				conn.beginTransaction(function(err) {
+					sheets_to_cache.forEach(function(sheet) {
+						conn.query( "insert into localscan.character_sheets set ?", sheet, end );
+					} );
+					scan_rows.forEach(function(scan_row) {
+						conn.query( "insert into localscan.scan_history set ?", scan_row, end );
+					});
 				});
 			});
-		});
+		} else {
+			res.redirect(endpoint)
+		}
 	}
 
-	var needed_characters = []
-	var characterSheets = []
-	var all_characters = req.body.scan.split("\n").map( function(x) { return x.trim() }).filter( function(x) { return x.length > 0 });
+	var needed_characters = [], 
+		characterSheets = [],
+		sheets_to_cache = [],
+		all_characters = req.body.scan.split("\n").map( function(x) { return x.trim().toUpperCase() }).filter( function(x) { return x.length > 0 });
 
 	if( all_characters.length == 0 ) {
-		console.log("empty: %j", all_characters )
+		logger.info('query="%s" : empty-scan : ip="%s"', req.path, req.query.scan_id, req.ip )
+
 		res.redirect('/?section=local')
 		return;
 	}
-	console.log("Post: %j", all_characters )
 
-	mysql_pool.query("select * from localscan.character_sheets.ddl where characterName in (?)", all_characters, function(e,matched) {
-		var character_sheets_cache = {}
+	logger.info(all_characters)
+	var characters_query = mysql.format("select c.* from localscan.character_sheets c where `character` in (?)", [ all_characters ])
+	logger.info(characters_query)
+	mysql_pool.query(characters_query, function(e,matched) {
+		if(e) {
+			logger.warn("query %s - error: ", characters_query, e)
+		}
+		logger.info(matched)
 		for (rowidx in matched) {
 			row = matched[rowidx]
-			character_sheets_cache[row.characterName] = row;
+			character_sheets_cache[row.character.toUpperCase()] = row;
 		}
 
 		for (char_idx in all_characters) {
@@ -135,7 +158,7 @@ router.post('/local_scan', function(req, res) {
 		}
 
 		if(needed_characters.length == 0 ) {
-			final(characterSheets)
+			final(characterSheets, sheets_to_cache, all_characters);
 		}
 
 		function chunk(arr, factor) {
@@ -151,18 +174,16 @@ router.post('/local_scan', function(req, res) {
 		var splitCharacters = chunk(needed_characters, 100);
 
 		var pool = { maxSockets: 40 };
-		var sheets_to_cache = []
 		splitCharacters.forEach(function(split) {
 			var requestString = "https://api.eveonline.com/eve/CharacterID.xml.aspx?names=" + encodeURIComponent(split.join());
 			var groups = 0;
 			request({ pool:pool, url:requestString}, function(err, response, body) {
-				console.log("group: " + groups);
 				groups = groups + 1;
 
 				xml2js.parseString(body, function( err, character_ids ) {
 					if(err) {
-						console.log(err);
-						console.log(body);
+						logger.warn("Error '%s' parsing %s", err, body)
+						return;
 					}
 					var charactersToIds = {}
 					var idsToCharacters = {}
@@ -177,9 +198,7 @@ router.post('/local_scan', function(req, res) {
 
 					ids.forEach(function(character_id) {
 						var character_sheet_req = "https://api.eveonline.com/eve/CharacterInfo.xml.aspx?characterID=" + character_id;
-						console.log("-");
 						request({ pool:pool, url: character_sheet_req }, function(err, response, body) {
-							console.log("c:" + characterSheets.length/needed_characters.length);
 							xml2js.parseString(body, function( err, sheet ) {
 								if(!('result' in sheet.eveapi)) {
 									all_characters.splice( all_characters.indexOf( idsToCharacters[character_id] ), 1)
@@ -204,9 +223,7 @@ router.post('/local_scan', function(req, res) {
 					});
 				} );
 			});
-
 		} );
-
 	} );
 });
 
