@@ -88,11 +88,11 @@ router.post('/local_scan', function(req, res) {
 		var scan_id = md5(all_characters.join())
 		logger.info(
 				'query="%s" : characters="%d" : queried="%d" : scan="%s" : ip="%s"', 
-				req.path, all_characters.length, sheets_to_cache.length, scan_id, req.ip 
+				req.path, foundSheets.length, sheets_to_cache.length, scan_id, req.ip 
 		)
 		var endpoint = '/local_render?section=local&scan_id=' + scan_id;
 
-		if( sheets_to_cache.length > 0 || foundSheets.length > 0 ) {
+		if( foundSheets.length > 0 ) {
 			sheets_to_cache = sheets_to_cache.map( function(x) { x['retrieved'] = scan_date; return x });
 			var scan_rows = foundSheets.map( function(x) { return { character_id: x.character_id, scan_date: scan_date, scan_id: scan_id } });		
 			mysql_pool.getConnection(function(err, conn) {
@@ -120,7 +120,8 @@ router.post('/local_scan', function(req, res) {
 				});
 			});
 		} else {
-			res.redirect(endpoint)
+			res.redirect("/?section=local")
+			return
 		}
 	}
 
