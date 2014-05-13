@@ -1,5 +1,6 @@
 mixin render_alliances_graph(alliances, alliance_names, counts, ids)
 	- var chart_id = locals.uuid()
+
 	div(id=chart_id, width="100%", height="500px")
 
 	script(src='//code.highcharts.com/highcharts.js')
@@ -183,6 +184,8 @@ mixin render_alliances(alliances, unaligned, counts, ids)
 	+render_alliances_table( alliances, alliance_names, counts, ids )
 
 mixin default_page()
+	p This will take the names in local and summarize them.  Select the name list in local, hit control-a, control-c to copy them all to clipboard. Then control-v in the below area.
+	
 	form.form-horizontal(action="/local_scan?section=local" method="post")
 		.form-group
 			label.col-sm-2.control-label System

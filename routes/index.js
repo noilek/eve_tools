@@ -72,9 +72,10 @@ router.get('/local_render', function(req, res) {
 	};
 
 	var scan_id = req.query.scan_id
-
-	mysql_pool.query("select c.* from localscan.character_sheets c \
-		join localscan.scan_history h on c.character_id = h.character_id where h.scan_id = ?", scan_id, function( err, sheets ) {
+	var scan_query = mysql.format("select c.* from localscan.character_sheets c \
+		join localscan.scan_history h on c.character_id = h.character_id where h.scan_id = ?", scan_id)
+	mysql_pool.query( scan_query, function( err, sheets ) {
+			logger.info(JSON.stringify(scan_id))
 			final(sheets);
 		}
 	)
@@ -91,9 +92,9 @@ router.post('/local_scan', function(req, res) {
 		)
 		var endpoint = '/local_render?section=local&scan_id=' + scan_id;
 
-		if( sheets_to_cache.length > 0 ) {
+		if( sheets_to_cache.length > 0 || foundSheets.length > 0 ) {
 			sheets_to_cache = sheets_to_cache.map( function(x) { x['retrieved'] = scan_date; return x });
-			var scan_rows = sheets_to_cache.map( function(x) { return { character_id: x.character_id, scan_date: scan_date, scan_id: scan_id } });		
+			var scan_rows = foundSheets.map( function(x) { return { character_id: x.character_id, scan_date: scan_date, scan_id: scan_id } });		
 			mysql_pool.getConnection(function(err, conn) {
 				var results = []
 				function end( err, query_res ) {
