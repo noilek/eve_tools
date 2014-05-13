@@ -30,7 +30,7 @@ router.get('/local_render', function(req, res) {
 
 		for( sheet_idx in foundSheets ) {
 			var sheet = foundSheets[sheet_idx];
-			if(typeof(sheet.alliance) == "undefined") {
+			if(typeof(sheet.alliance) == "undefined" || ! sheet.alliance ) {
 				if( !(sheet.corporation in unaligned) ) {
 					unaligned[sheet.corporation] = []
 					corps_to_count[sheet.corporation] = 0
@@ -120,7 +120,7 @@ router.post('/local_scan', function(req, res) {
 				});
 			});
 		} else {
-			res.redirect("/?section=local")
+			res.redirect("/")
 			return
 		}
 	}
@@ -133,7 +133,7 @@ router.post('/local_scan', function(req, res) {
 	if( all_characters.length == 0 ) {
 		logger.info('query="%s" : empty-scan : ip="%s"', req.path, req.query.scan_id, req.ip )
 
-		res.redirect('/?section=local')
+		res.redirect('/')
 		return;
 	}
 

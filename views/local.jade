@@ -102,7 +102,7 @@ mixin render_alliances_graph(alliances, alliance_names, counts, ids)
 						size: '60%',
 						dataLabels: {
 							formatter: function() {
-								return this.y > 5 ? this.point.name : null;
+								return  '<b>'+ this.point.name +':</b> '+ this.y + ' Pilot' + (this.y > 1 ? 's' : '' );
 							},
 							color: 'white',
 							distance: -50
@@ -114,8 +114,7 @@ mixin render_alliances_graph(alliances, alliance_names, counts, ids)
 						innerSize: '60%',
 						dataLabels: {
 							formatter: function() {
-								// display only if larger than 1
-								return this.y > 1 ? '<b>'+ this.point.name +':</b> '+ this.y + ' Pilots'  : null;
+								return  '<b>'+ this.point.name +':</b> '+ this.y + ' Pilot' + (this.y > 1 ? 's' : '' );
 							}
 						}
 					}]
@@ -173,35 +172,18 @@ mixin render_alliances_table(alliances, alliance_names, counts, ids)
 mixin render_alliances(alliances, unaligned, counts, ids)
 	- var alliance_names = Object.keys(alliances)
 	- alliance_names.sort( function(a,b) { return counts.alliances[a] < counts.alliances[b] ? 1 : (counts.alliances[a] == counts.alliances[b] ? a.localeCompare(b) : -1) } )
-	- alliance_names.push( "Unaligned" )
-	- alliances["Unaligned"] = unaligned
 	- var unaligned_corps = Object.keys(unaligned)
-	- var count = unaligned_corps.reduce( function( p, c, i, a ) { return p + counts.corps[c] }, 0)
-	- counts.alliances["Unaligned"] = count
+	- if( unaligned_corps.length > 1 ) { 
+	-	alliance_names.push( "Unaligned" );
+	- 	alliances["Unaligned"] = unaligned
+	- 	var count = unaligned_corps.reduce( function( p, c, i, a ) { return p + counts.corps[c] }, 0)
+	- 	counts.alliances["Unaligned"] = count
+	-}
 
 	+render_alliances_graph( alliances, alliance_names, counts, ids )
 
 	+render_alliances_table( alliances, alliance_names, counts, ids )
 
-mixin default_page()
-	p This will take the names in local and summarize them.  Select the name list in local, hit control-a, control-c to copy them all to clipboard. Then control-v in the below area.
-	
-	form.form-horizontal(action="/local_scan?section=local" method="post")
-		.form-group
-			label.col-sm-2.control-label System
-			.col-sm-10
-				input(type="text", name="system", value=locals.headers['eve_solarsystemname'], class="form-control")
-		.form-group
-			label.col-sm-2.control-label Local Paste
-			.col-sm-10
-				textarea.form-control(rows=10, name="scan")
-		.form-group
-			.col-sm-offset-2.col-sm-10
-				button(type="submit", class="btn btn-primary") Scan Local
-
 mixin local()
 	#base
-		if typeof(locals.scan) == "undefined"
-			+default_page()
-		else		
-			+render_alliances(locals.scan.alliances, locals.scan.unaligned, locals.scan.counts, locals.scan.ids)
+		+render_alliances(locals.scan.alliances, locals.scan.unaligned, locals.scan.counts, locals.scan.ids)
