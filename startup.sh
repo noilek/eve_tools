@@ -2,4 +2,4 @@
 
 npm install
 
-./node_modules/.bin/supervisor app.js
+./node_modules/.bin/forever start app.js

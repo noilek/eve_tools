@@ -1,6 +1,6 @@
 @import 'nib'
 
-@import url(http://fonts.googleapis.com/css?family=Anton);
+@import url(http://fonts.googleapis.com/css?family=Montserrat);
 
 body
 	padding: 50px
@@ -21,13 +21,14 @@ body
 	}
 
 .navbar-inverse .navbar-brand
+	font-family: 'Montserrat', sans-serif;
 	color: #ABCDEF
-	font-size: 160%
-.foo-old
-	color:white
-	font: @font-family-sans-serif
-	padding: 10px 19px
-	border-radius: 5px
-	background: #abcdef
-.foo
-	background: linear-gradient(top, #abcdef, #6abcde)
+	font-size: 28px
+
+
+.reverse-font
+	-moz-transform: scale(-1, 1);
+	-webkit-transform: scale(-1, 1);
+	-o-transform: scale(-1, 1);
+	-ms-transform: scale(-1, 1);
+	transform: scale(-1, 1);

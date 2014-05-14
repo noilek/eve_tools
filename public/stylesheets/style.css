@@ -1,4 +1,5 @@
-@import url("http://fonts.googleapis.com/css?family=Anton");
+@import url("http://fonts.googleapis.com/css?family=Montserrat");
+@import url("http://fonts.googleapis.com/css?family=JosefinSans");
 body {
   padding: 50px;
   font: 14px "Lucida Grande", Helvetica, Arial, sans-serif;
@@ -18,21 +19,18 @@ body {
   background: #999;
 }
 .navbar-inverse .navbar-brand {
+  font-family: 'Montserrat', sans-serif;
   color: #abcdef;
-  font-size: 160%;
+  font-size: 28px;
 }
-.foo-old {
-  color: #fff;
-  font: ;
-  padding: 10px 19px;
-  -webkit-border-radius: 5px;
-  border-radius: 5px;
-  background: #abcdef;
-}
-.foo {
-  background: -webkit-linear-gradient(top, #abcdef, #6abcde);
-  background: -moz-linear-gradient(top, #abcdef, #6abcde);
-  background: -o-linear-gradient(top, #abcdef, #6abcde);
-  background: -ms-linear-gradient(top, #abcdef, #6abcde);
-  background: linear-gradient(to bottom, #abcdef, #6abcde);
+.reverse-font {
+  -moz-transform: scale(-1, 1);
+  -webkit-transform: scale(-1, 1);
+  -o-transform: scale(-1, 1);
+  -ms-transform: scale(-1, 1);
+  -webkit-transform: scale(-1, 1);
+  -moz-transform: scale(-1, 1);
+  -o-transform: scale(-1, 1);
+  -ms-transform: scale(-1, 1);
+  transform: scale(-1, 1);
 }
