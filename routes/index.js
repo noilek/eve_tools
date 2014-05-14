@@ -13,7 +13,7 @@ var router = express.Router();
 /* GET home page. */
 router.get('/', function(req, res) {
 	logger.info('query="%s" : ip="%s"', req.path, req.ip )	
-	res.render('index', { section: req.query.section, headers: req.headers} );
+	res.render('index', { section: '', headers: req.headers} );
 });
 
 var character_sheets_cache = {};
@@ -55,7 +55,7 @@ router.get('/local_render', function(req, res) {
 			}
 		}
 
-		res.render('index', { section: req.query.section, headers: req.headers, 
+		res.render('index', { section: 'local', headers: req.headers, 
 			system:req.body.system, 
 			scan: {
 				alliances:alliances,
@@ -75,7 +75,6 @@ router.get('/local_render', function(req, res) {
 	var scan_query = mysql.format("select c.* from localscan.character_sheets c \
 		join localscan.scan_history h on c.character_id = h.character_id where h.scan_id = ?", scan_id)
 	mysql_pool.query( scan_query, function( err, sheets ) {
-			logger.info(JSON.stringify(scan_id))
 			final(sheets);
 		}
 	)
@@ -137,9 +136,8 @@ router.post('/local_scan', function(req, res) {
 		return;
 	}
 
-	logger.info(all_characters)
 	var characters_query = mysql.format("select c.* from localscan.character_sheets c where `character` in (?)", [ all_characters ])
-	logger.info(characters_query)
+
 	mysql_pool.query(characters_query, function(e,matched) {
 		if(e) {
 			logger.warn("query %s - error: ", characters_query, e)

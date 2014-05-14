@@ -18,11 +18,8 @@ body {
   background: #999;
 }
 .navbar-inverse .navbar-brand {
-  font-family: 'Anton', sans-serif;
   color: #abcdef;
-}
-.navbar-inverse .navbar-brand:hover {
-  color: #fff;
+  font-size: 160%;
 }
 .foo-old {
   color: #fff;
