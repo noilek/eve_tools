@@ -35,7 +35,6 @@ mixin render_alliances_graph(alliances, alliance_names, counts, ids)
 			var alliance_data = [];
 			var corp_data = [];
 			var total_corps_rendered = 0;
-			var max_corps_rendered = colors.length * 4;
 			for( var alliance_idx in sorted_alliance_names) {
 				if( alliance_idx < colors.length) {
 					var alliance = sorted_alliance_names[alliance_idx];
@@ -51,6 +50,8 @@ mixin render_alliances_graph(alliances, alliance_names, counts, ids)
 
 				var corps = alliances[alliance];
 				var corp_names = Object.keys(corps);
+				var max_corps_rendered = colors.length * 4;
+
 				corp_names.sort(function(a,b) { return counts.corps[a] < counts.corps[b] ? 1 : (counts.corps[a] == counts.corps[b] ? a.localeCompare(b) : -1) })
 				for( var corp_idx in corp_names) {
 					if(total_corps_rendered < max_corps_rendered) {
@@ -60,10 +61,10 @@ mixin render_alliances_graph(alliances, alliance_names, counts, ids)
 							y: counts.corps[corp_name],
 							color:ColorLuminance(alliance_color,.5*corp_idx/corp_names.length)
 						});
+						total_corps_rendered++;
 					} else {
 						corp_data[corp_data.length-1].y = corp_data[corp_data.length-1].y + counts.corps[corp_name]
 					}
-					total_corps_rendered++;
 				}
 			}
 
