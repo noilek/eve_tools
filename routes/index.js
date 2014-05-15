@@ -86,9 +86,16 @@ router.post('/local_scan', function(req, res) {
 		all_characters.sort()
 		var scan_id = md5(all_characters.join())
 		logger.info(
-				'query="%s" : characters="%d" : queried="%d" : scan="%s" : ip="%s"', 
-				req.path, foundSheets.length, sheets_to_cache.length, scan_id, req.ip 
+				'query="%s" : characters="%d" : queried="%d" : scan="%s" : ip="%s" : char="%s(%s)" : sys="%s(%s)" : ship : "%s(%s)"', 
+				req.path, foundSheets.length, sheets_to_cache.length, scan_id, req.ip,
+				req.headers.eve_charname,
+				req.headers.eve_charid, 
+				req.headers.eve_solarsystemname, 
+				req.headers.eve_solarsystemid, 
+				req.headers.eve_shipname, 
+				req.headers.eve_shipid
 		)
+
 		var endpoint = '/local_render?section=local&scan_id=' + scan_id;
 
 		if( foundSheets.length > 0 ) {
@@ -142,7 +149,7 @@ router.post('/local_scan', function(req, res) {
 		if(e) {
 			logger.warn("query %s - error: ", characters_query, e)
 		}
-		logger.info(matched)
+
 		for (rowidx in matched) {
 			row = matched[rowidx]
 			character_sheets_cache[row.character.toUpperCase()] = row;
