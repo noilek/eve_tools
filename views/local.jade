@@ -36,8 +36,9 @@ mixin render_alliances_graph(alliances, alliance_names, counts, ids)
 			var corp_data = [];
 			var total_corps_rendered = 0;
 			for( var alliance_idx in sorted_alliance_names) {
+				var alliance = sorted_alliance_names[alliance_idx];
 				if( alliance_idx < colors.length) {
-					var alliance = sorted_alliance_names[alliance_idx];
+					var total_corps_rendered = 0;
 					alliance_data.push( {
 						name:(alliance_idx == colors.length - 1 ? "Other" : alliance),
 						y:counts.alliances[alliance],
@@ -50,16 +51,16 @@ mixin render_alliances_graph(alliances, alliance_names, counts, ids)
 
 				var corps = alliances[alliance];
 				var corp_names = Object.keys(corps);
-				var max_corps_rendered = colors.length * 4;
+				var max_corps_rendered = colors.length;
 
 				corp_names.sort(function(a,b) { return counts.corps[a] < counts.corps[b] ? 1 : (counts.corps[a] == counts.corps[b] ? a.localeCompare(b) : -1) })
 				for( var corp_idx in corp_names) {
-					if(total_corps_rendered < max_corps_rendered) {
-						var corp_name = corp_names[corp_idx];
+					var corp_name = corp_names[corp_idx];
+					if( total_corps_rendered < max_corps_rendered) {
 						corp_data.push( {
-							name:(total_corps_rendered == max_corps_rendered - 1 ? "Other" : corp_name),
+							name:(total_corps_rendered >= max_corps_rendered - 1 ? "Other" : corp_name),
 							y: counts.corps[corp_name],
-							color:ColorLuminance(alliance_color,.5*corp_idx/corp_names.length)
+							color:ColorLuminance(alliance_color,.6*total_corps_rendered/colors.length)
 						});
 						total_corps_rendered++;
 					} else {
