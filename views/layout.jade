@@ -9,7 +9,7 @@ html
 		script(src='//netdna.bootstrapcdn.com/bootstrap/3.1.1/js/bootstrap.min.js')
 
 		script.
-			if( typeof(CCPEVE) != 'undefined') CCPEVE.requestTrust('http://localhost:8080')		
+			if( typeof(CCPEVE) != 'undefined') CCPEVE.requestTrust('http://#{locals.headers.host}/*')		
 			//poly fills for IGB
 			if (!Object.keys) { 
 				Object.keys = (function () {

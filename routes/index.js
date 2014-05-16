@@ -13,7 +13,7 @@ var router = express.Router();
 /* GET home page. */
 router.get('/', function(req, res) {
 	logger.info('query="%s" : ip="%s"', req.path, req.ip )	
-	res.render('index', { section: '', headers: req.headers} );
+	res.render('index', { section: '', headers: req.headers, request: request } );
 });
 
 var character_sheets_cache = {};
@@ -67,7 +67,8 @@ router.get('/local_render', function(req, res) {
 				ids: ids
 			},
 			uuid: uuid,
-			logger: logger
+			logger: logger,
+			request: request
 		} );
 	};
 
