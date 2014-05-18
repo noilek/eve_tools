@@ -93,10 +93,17 @@ mixin render_alliances_graph(alliances, alliance_names, counts, ids)
 						pie: {
 							shadow: false,
 							center: ['50%', '50%']
-						}
+						},
 					},
 					tooltip: {
-						valueSuffix: ' '
+						valueSuffix: ' ',
+						formatter: function() {
+							var output = "<div style='background:white;padding:5px'>" + this.key + ": " + this.y
+							// total, percentage, point, series, key, x, y
+
+							return output
+						},
+						useHTML: true
 					},
 					series: [{
 						name: 'Pilots',
