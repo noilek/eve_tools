@@ -1,3 +1,5 @@
+-var host = locals.request && locals.request.headers ? locals.request.headers.host : ""
+
 doctype html
 html
 	head
@@ -9,7 +11,7 @@ html
 		script(src='//netdna.bootstrapcdn.com/bootstrap/3.1.1/js/bootstrap.min.js')
 
 		script.
-			if( typeof(CCPEVE) != 'undefined') CCPEVE.requestTrust('http://#{locals.headers.host}/*')		
+			if( typeof(CCPEVE) != 'undefined') CCPEVE.requestTrust('http://#{host}/*')		
 			//poly fills for IGB
 			if (!Object.keys) { 
 				Object.keys = (function () {

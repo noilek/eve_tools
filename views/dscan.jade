@@ -1,0 +1,123 @@
+mixin dscan()
+	-function ColorLuminance(hex, lum) {
+	-	hex = String(hex).replace(/[^0-9a-f]/gi, '');
+	-	if (hex.length < 6) {
+	-		hex = hex[0]+hex[0]+hex[1]+hex[1]+hex[2]+hex[2];
+	-	}
+	-	lum = lum || 0;
+	-	var rgb = "#", c, i;
+	-	for (i = 0; i < 3; i++) {
+	-		c = parseInt(hex.substr(i*2,2), 16);
+	-		c = Math.round(Math.min(Math.max(0, c + (c * lum)), 255)).toString(16);
+	-		rgb += ("00"+c).substr(c.length);
+	-	}
+	-	return rgb;
+	-}	
+	script(src="/javascripts/jit.js")
+	center(style="padding:10px")
+		.well.well-sm
+			#treemap
+	.panel-group
+		.panel.panel-primary
+			- var colors = [ "#4D6A00", "#0C7F9A", "#BE0A83", "#7FBA5D", "#F8820D", "#D48E6A", "#478D76", "#C36278", "#515D91", "#655091", "#D4C66A", "#A4C663", "#AC5685", "#734B8E", "#AA3939" ]
+			- var i = 0
+			- var treemap_data = { data:{ size:"14px", "$color" : "#2E1F3E" }, id:'root', name: 'Dscan Results', children: [] }
+			- var categories = Object.keys(locals.dscan)
+			- categories.sort(function(a,b) { return locals.counts.category[a] < locals.counts.category[b] ? 1 : -1})
+			each dscan_result in categories
+				-var class_uuid = locals.uuid()
+				-var category_count = locals.counts.category[dscan_result]
+				-var current_category = { data: { "$area" : locals.counts.category[dscan_result] }, id:"tm"+class_uuid, name:dscan_result + " (" + category_count.toString() + ")",	children: [] }
+				-treemap_data.children.push(current_category)
+				-var class_color = colors[i++]
+				-var scan_class = locals.dscan[dscan_result]
+
+				.panel-heading
+					a.node(href="##{class_uuid}", data-toggle="collapse", data-parent="#accordian", style="font-size:18px")
+						span.glyphicon.glyphicon-chevron-right
+						=" " + dscan_result
+						span.pull-right= category_count
+				.panel-collapse.collapse.in(id="#{class_uuid}")
+					- var groups = Object.keys(scan_class)
+					- groups.sort(function(a,b) { return locals.counts.group[a] < locals.counts.group[b] ? 1 : -1 } )
+					- var chunks = locals._.groupBy( groups, function(x, i) { return Math.floor( i / 3 )}) 
+					- var biggestGroup = locals.counts.group[groups[0]]
+					each chunk in chunks
+						.row
+							.col-xs-offset-1
+								each group_name in chunk
+									-var group_uuid = locals.uuid()
+									-var group = scan_class[group_name]
+									-group.sort(function(a,b) { return a.num < b.num ? 1 : -1})
+									-var groupCount = locals.counts.group[group_name]
+									-var brightness = ColorLuminance(class_color, (1-groupCount/biggestGroup))
+									-var current_group = { children:[], data:{ size:"13px", "$area" : groupCount },id:"tm"+group_uuid, name:group_name + " (" + groupCount.toString() + ")" }
+									-current_category.children.push(current_group)
+									.col-xs-4
+										.panel-group
+											.panel.panel-info
+												.panel-heading(style="background-color:#{brightness}")
+													a.node(href="##{group_uuid}", data-toggle="collapse", data-parent="#accordian", style="font-size:16px")
+														span.glyphicon.glyphicon-chevron-right
+														=" " + group_name
+														span.pull-right=groupCount
+												.panel-collapse.collapse(id="#{group_uuid}")
+													div(id="restm#{group_uuid}")
+														-var count = 0
+														-var largest = group.reduce(function(p,v) { return p.num > v.num ? p : v})
+														each type_row in group
+															-var type_name = type_row.typeName
+															-var num = type_row.num
+															-var type_brightness = ColorLuminance(brightness, (1-num/largest.num)*1.5)
+
+															div(id="res{type_name}")
+																.row(style="background-color:#{count++%2 == 0 ? '#abcdef' : '#dddddd'}")
+																	-current_group.children.push({children:[], data: {size:"11px", "$color":type_brightness, "$area":num}, id:type_name, name:type_name + " (" + num.toString() + ")"})
+																	.col-xs-5.col-xs-offset-1=type_name
+																	.col-xs-4=type_row.raceName
+																	.col-xs-2.pull-right=num
+	script.
+		var json = !{JSON.stringify(treemap_data)}
+		var tm = new $jit.TM.Squarified({
+			//where to inject the visualization
+			injectInto: 'treemap',
+			//parent box title heights
+			titleHeight: 20,
+			//enable animations
+			animate: false,
+			//box offsets
+			offset: 1,
+			//Attach left and right click events
+			duration: 750,
+			//Add the name of the node in the correponding label
+			//This method is called once, on label creation.
+			width: $(document).width()*.85,
+			height: 640,
+			onCreateLabel: function(domElement, node){
+				domElement.innerHTML = "<div style='font-size:" + node.data.size + "'>"+node.name +"</div>";
+			},
+			Events: {
+				enable: true,
+				onClick: function(node) {
+					if(node) tm.enter(node);
+				},
+				onRightClick: function() {
+					tm.out();
+				}
+			},
+			Tips: {
+				enable: true,
+				//add positioning offsets
+				offsetX: 20,
+				offsetY: 20,
+				//implement the onShow method to
+				//add content to the tooltip when a node
+				//is hovered
+				onShow: function(tip, node, isLeaf, domElement) {
+					//var html = document.getElementById("res"+node.id).innerHTML
+					//tip.innerHTML =  html; 
+				}  
+			},						
+		});
+		tm.loadJSON(json);
+		tm.refresh();

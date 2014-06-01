@@ -2,9 +2,12 @@ extends layout
 
 include header
 include local
+include dscan
 
 block content
 	+header(locals.section)
 	case locals.section
 		when "local"
 			+local()
+		when "dscan"
+			+dscan()

@@ -8,7 +8,9 @@ module.exports = (function(pool) {
 
 	var tables = [
 		"localscan.character_sheets",
-		"localscan.scan_history"
+		"localscan.scan_history",
+		"localscan.dscan_history",
+		"localscan.dscan_contents"
 	]
 
 	function readDDL(table) {

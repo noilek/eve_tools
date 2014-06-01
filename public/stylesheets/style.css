@@ -22,6 +22,16 @@ body {
   color: #abcdef;
   font-size: 28px;
 }
+.node {
+  color: #fff;
+  font-size: 12px;
+  overflow: hidden;
+  cursor: pointer;
+  text-shadow: 3px 3px 5px #000;
+  -o-text-shadow: 3px 3px 5px #000;
+  -webkit-text-shadow: 3px 3px 5px #000;
+  -moz-text-shadow: 3px 3px 5px #000;
+}
 .reverse-font {
   -moz-transform: scale(-1, 1);
   -webkit-transform: scale(-1, 1);

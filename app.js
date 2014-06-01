@@ -9,7 +9,6 @@ var stylus = require('stylus');
 var mysql = require('mysql');
 
 var routes = require('./routes/index');
-var users = require('./routes/users');
 var initdb = require('./initdb')
 var config = require('./config')
 var logger = require('./logger')
@@ -20,14 +19,15 @@ app.listen(config.http.port);
 mysql_pool = mysql.createPool( config.mysql );
 
 initdb(mysql_pool).initialize_tables( function(e, r) {
+    var errors = []
+
     for(var table in e) {
-        var errors = []
         if( e[table] && "errno" in e[table] )
             errors.push("Unable to build table " + table + ", error: " + JSON.stringify(e[table].code))
-
-        if(errors.length > 0)
-            throw errors.join("\n\n")
     }
+    if(errors.length > 0)
+        throw "Unable to init all tables: " + JSON.stringify(errors)
+
     logger.info('all database tables ready')
 })
 
@@ -51,7 +51,6 @@ app.use(stylus.middleware({src: path.join(__dirname, 'public'), compile: compile
 app.use(express.static(path.join(__dirname, 'public')));
 
 app.use('/', routes);
-app.use('/users', users);
 
 /// catch 404 and forwarding to error handler
 app.use(function(req, res, next) {
