@@ -43,9 +43,19 @@ module.exports = (function() {
 			var scan_date = new Date()
 			all_characters.sort()
 			var scan_id = md5(all_characters.join())
+			var exists_query = mysql.format('select count(1) as cnt from localscan.scan_history where scan_id = ?', [ scan_id ])
+			mysql_pool.query(exists_query, function(e,r) {
+				if(e) {
+					throw e
+				}
+				if(r[0].cnt == 0) {
+					var scan_rows = foundSheets.map( function(x) { return { character_id: x.character_id, scan_date: scan_date, scan_id: scan_id } });		
+					cache_objs_to_db(scan_rows, "localscan.scan_history", function() { final( scan_id ) })				
+				} else {
+					final(scan_id)
+				}
+			})
 
-			var scan_rows = foundSheets.map( function(x) { return { character_id: x.character_id, scan_date: scan_date, scan_id: scan_id } });		
-			cache_objs_to_db(scan_rows, "localscan.scan_history", function() { final( scan_id ) })
 		},
 
 		save_dscan_results: function(results_num, char_id, solarsystem_id, final) {
