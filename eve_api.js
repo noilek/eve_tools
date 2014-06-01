@@ -2,6 +2,7 @@ var mysql = require('mysql')
 var xml2js = require('xml2js');
 var md5 = require('MD5');
 var _ = require('underscore')
+var request = require('request');
 
 var logger = require('./logger')
 
