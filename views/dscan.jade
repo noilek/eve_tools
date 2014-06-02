@@ -1,16 +1,25 @@
 mixin dscan()
-	-function ColorLuminance(hex, lum) {
+	-function rgb_to_triple(hex) {
 	-	hex = String(hex).replace(/[^0-9a-f]/gi, '');
 	-	if (hex.length < 6) {
 	-		hex = hex[0]+hex[0]+hex[1]+hex[1]+hex[2]+hex[2];
 	-	}
-	-	lum = lum || 0;
-	-	var rgb = "#", c, i;
+	-	var triple = []
 	-	for (i = 0; i < 3; i++) {
-	-		c = parseInt(hex.substr(i*2,2), 16);
+	-		triple.push(parseInt(hex.substr(i*2,2), 16));
+	-	}
+	-	return triple
+	-}
+	-function ColorLuminance(hex, lum) {
+	-	var triple = rgb_to_triple(hex);
+	-	lum = lum || 0;
+	-	var rgb = "#";
+	-	for( var i in triple) {
+	-		var c = triple[i]
 	-		c = Math.round(Math.min(Math.max(0, c + (c * lum)), 255)).toString(16);
 	-		rgb += ("00"+c).substr(c.length);
 	-	}
+	-   locals.logger.info(hex + " -> " + rgb)	
 	-	return rgb;
 	-}	
 	script(src="/javascripts/jit.js")
@@ -20,7 +29,7 @@ mixin dscan()
 	.panel-group
 		.panel.panel-primary
 			- var colors = [ "#4D6A00", "#0C7F9A", "#BE0A83", "#7FBA5D", "#F8820D", "#D48E6A", "#478D76", "#C36278", "#515D91", "#655091", "#D4C66A", "#A4C663", "#AC5685", "#734B8E", "#AA3939" ]
-			- var i = 0
+			- var color_index = 0
 			- var treemap_data = { data:{ size:"14px", "$color" : "#2E1F3E" }, id:'root', name: 'Dscan Results', children: [] }
 			- var categories = Object.keys(locals.dscan)
 			- categories.sort(function(a,b) { return locals.counts.category[a] < locals.counts.category[b] ? 1 : -1})
@@ -29,7 +38,7 @@ mixin dscan()
 				-var category_count = locals.counts.category[dscan_result]
 				-var current_category = { data: { "$area" : locals.counts.category[dscan_result] }, id:"tm"+class_uuid, name:dscan_result + " (" + category_count.toString() + ")",	children: [] }
 				-treemap_data.children.push(current_category)
-				-var class_color = colors[i++]
+				-var class_color = colors[color_index++]
 				-var scan_class = locals.dscan[dscan_result]
 
 				.panel-heading
@@ -40,7 +49,7 @@ mixin dscan()
 				.panel-collapse.collapse.in(id="#{class_uuid}")
 					- var groups = Object.keys(scan_class)
 					- groups.sort(function(a,b) { return locals.counts.group[a] < locals.counts.group[b] ? 1 : -1 } )
-					- var chunks = locals._.groupBy( groups, function(x, i) { return Math.floor( i / 3 )}) 
+					- var chunks = locals._.groupBy( groups, function(x, y) { return Math.floor( y / 3 )}) 
 					- var biggestGroup = locals.counts.group[groups[0]]
 					each chunk in chunks
 						.row
@@ -51,7 +60,7 @@ mixin dscan()
 									-group.sort(function(a,b) { return a.num < b.num ? 1 : -1})
 									-var groupCount = locals.counts.group[group_name]
 									-var brightness = ColorLuminance(class_color, (1-groupCount/biggestGroup))
-									-var current_group = { children:[], data:{ size:"13px", "$area" : groupCount },id:"tm"+group_uuid, name:group_name + " (" + groupCount.toString() + ")" }
+									-var current_group = { children:[], data:{ size:"12px", "$area" : groupCount },id:"tm"+group_uuid, name:group_name + " (" + groupCount.toString() + ")" }
 									-current_category.children.push(current_group)
 									.col-xs-4
 										.panel-group
@@ -72,7 +81,12 @@ mixin dscan()
 
 															div(id="res{type_name}")
 																.row(style="background-color:#{count++%2 == 0 ? '#abcdef' : '#dddddd'}")
-																	-current_group.children.push({children:[], data: {size:"11px", "$color":type_brightness, "$area":num}, id:type_name, name:type_name + " (" + num.toString() + ")"})
+																	-var triple = rgb_to_triple(type_brightness)
+																	-var node_class = "node"
+																	-if(triple[0]*.299 + triple[1]*.587 + triple[2]*.114 > 150) {
+																	-	node_class = "node-black"
+																	-}
+																	-current_group.children.push({children:[], data: {node_class:node_class,size:"11px", "$color":type_brightness, "$area":num}, id:type_name, name:type_name + " (" + num.toString() + ")"})
 																	.col-xs-5.col-xs-offset-1=type_name
 																	.col-xs-4=type_row.raceName
 																	.col-xs-2.pull-right=num
@@ -88,13 +102,13 @@ mixin dscan()
 			//box offsets
 			offset: 1,
 			//Attach left and right click events
-			duration: 750,
+			duration: 640,
 			//Add the name of the node in the correponding label
 			//This method is called once, on label creation.
-			width: $(document).width()*.85,
-			height: 640,
+			width: $(document).width()*.87,
+			height: 720,
 			onCreateLabel: function(domElement, node){
-				domElement.innerHTML = "<div style='font-size:" + node.data.size + "'>"+node.name +"</div>";
+				domElement.innerHTML = "<div  class='"+ node.data.node_class +"' style='font-size:" + node.data.size + "'>"+node.name +"</div>";
 			},
 			Events: {
 				enable: true,
