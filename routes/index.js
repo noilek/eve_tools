@@ -13,7 +13,7 @@ var router = express.Router();
 /* GET home page. */
 router.get('/', function(req, res) {
 	logger.info('query="%s" : ip="%s"', req.path, req.ip )	
-	res.render('index', { section: '', headers: req.headers, request: request } );
+	res.render('index', { section: '', headers: req.headers, request: req } );
 });
 
 router.get('/local_render', function(req, res) {
