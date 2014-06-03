@@ -1,10 +1,10 @@
 mixin render_alliances_graph(alliances, alliance_names, counts, ids)
 	- var chart_id = locals.uuid()
-
-	div(id=chart_id, width="100%", height="500px")
+	center
+		.well.well-sm
+			div(id=chart_id, width="500px", height="500px")
 
 	script(src='//code.highcharts.com/highcharts.js')
-	script(src='//code.highcharts.com/modules/exporting.js')
 
 	script.
 		$(function () { 
@@ -31,104 +31,108 @@ mixin render_alliances_graph(alliances, alliance_names, counts, ids)
 				sorted_alliance_names = !{JSON.stringify(alliance_names)},
 				alliances = !{JSON.stringify(alliances)},
 				colors = Highcharts.getOptions().colors;
-			
-			var alliance_data = [];
-			var corp_data = [];
-			var total_corps_rendered = 0;
-			for( var alliance_idx in sorted_alliance_names) {
-				var alliance = sorted_alliance_names[alliance_idx];
-				if( alliance_idx < colors.length) {
-					var total_corps_rendered = 0;
-					alliance_data.push( {
-						name:(alliance_idx == colors.length - 1 ? "Other" : alliance),
-						y:counts.alliances[alliance],
-						color:colors[alliance_idx % colors.length]
-					});
-				} else {
-					alliance_data[alliance_data.length-1].y = alliance_data[alliance_data.length-1].y + counts.alliances[alliance]
-				}
-				var alliance_color = alliance_data[alliance_data.length-1].color;
-
-				var corps = alliances[alliance];
-				var corp_names = Object.keys(corps);
-				var max_corps_rendered = colors.length;
-
-				corp_names.sort(function(a,b) { return counts.corps[a] < counts.corps[b] ? 1 : (counts.corps[a] == counts.corps[b] ? a.localeCompare(b) : -1) })
-				for( var corp_idx in corp_names) {
-					var corp_name = corp_names[corp_idx];
-					if( total_corps_rendered < max_corps_rendered) {
-						corp_data.push( {
-							name:(total_corps_rendered >= max_corps_rendered - 1 ? "Other" : corp_name),
-							y: counts.corps[corp_name],
-							color:ColorLuminance(alliance_color,.6*total_corps_rendered/colors.length)
+			function create_chart(div_id) {
+				var alliance_data = [];
+				var corp_data = [];
+				var total_corps_rendered = 0;
+				for( var alliance_idx in sorted_alliance_names) {
+					var alliance = sorted_alliance_names[alliance_idx];
+					if( alliance_idx < colors.length) {
+						var total_corps_rendered = 0;
+						alliance_data.push( {
+							name:(alliance_idx == colors.length - 1 ? "Other" : alliance),
+							y:counts.alliances[alliance],
+							color:colors[alliance_idx % colors.length]
 						});
-						total_corps_rendered++;
 					} else {
-						corp_data[corp_data.length-1].y = corp_data[corp_data.length-1].y + counts.corps[corp_name]
+						alliance_data[alliance_data.length-1].y = alliance_data[alliance_data.length-1].y + counts.alliances[alliance]
+					}
+					var alliance_color = alliance_data[alliance_data.length-1].color;
+
+					var corps = alliances[alliance];
+					var corp_names = Object.keys(corps);
+					var max_corps_rendered = colors.length;
+
+					corp_names.sort(function(a,b) { return counts.corps[a] < counts.corps[b] ? 1 : (counts.corps[a] == counts.corps[b] ? a.localeCompare(b) : -1) })
+					for( var corp_idx in corp_names) {
+						var corp_name = corp_names[corp_idx];
+						if( total_corps_rendered < max_corps_rendered) {
+							corp_data.push( {
+								name:(total_corps_rendered >= max_corps_rendered - 1 ? "Other" : corp_name),
+								y: counts.corps[corp_name],
+								color:ColorLuminance(alliance_color,.6*total_corps_rendered/colors.length)
+							});
+							total_corps_rendered++;
+						} else {
+							corp_data[corp_data.length-1].y = corp_data[corp_data.length-1].y + counts.corps[corp_name]
+						}
 					}
 				}
-			}
 
-			// Create the chart
-			var chart;
-			$(document).ready(function() {
-				chart = new Highcharts.Chart({
-					chart: {
-						type: 'pie',
-						renderTo:'#{chart_id}',
-						shadow: true,
-						spacing: [0,5,5,5],
-						margin: [0,0,0,0],
-						height:500
-					},
-					yAxis: {
-						title: {
-							text: 'Total percent market share'
-						}
-					},
-					title: {
-						text:''
-					},
-					plotOptions: {
-						pie: {
-							shadow: false,
-							center: ['50%', '50%']
+				// Create the chart
+				var chart;
+				$(document).ready(function() {
+					chart = new Highcharts.Chart({
+						chart: {
+							type: 'pie',
+							renderTo:div_id,
+							shadow: true,
+							spacing: [0,5,5,5],
+							margin: [0,0,0,0],
+							height:500,
+							width:1024
 						},
-					},
-					tooltip: {
-						valueSuffix: ' ',
-						formatter: function() {
-							var output = "<div style='background:white;padding:5px'>" + this.key + ": " + this.y
-							// total, percentage, point, series, key, x, y
-
-							return output
-						},
-						useHTML: true
-					},
-					series: [{
-						name: 'Pilots',
-						data: alliance_data,
-						size: '60%',
-						dataLabels: {
-							formatter: function() {
-								return  '<b>'+ this.point.name +':</b> '+ this.y + ' Pilot' + (this.y > 1 ? 's' : '' );
-							},
-							color: 'white',
-							distance: -50
-						}
-					}, {
-						name: 'Pilots',
-						data: corp_data,
-						size: '80%',
-						innerSize: '60%',
-						dataLabels: {
-							formatter: function() {
-								return  '<b>'+ this.point.name +':</b> '+ this.y + ' Pilot' + (this.y > 1 ? 's' : '' );
+						yAxis: {
+							title: {
+								text: 'Total percent market share'
 							}
-						}
-					}]
+						},
+						title: {
+							text:''
+						},
+						plotOptions: {
+							pie: {
+								shadow: false,
+								center: ['50%', '50%']
+							},
+						},
+						tooltip: {
+							valueSuffix: ' ',
+							formatter: function() {
+								var output = "<div style='background:white;padding:5px'>" + this.key + ": " + this.y
+								// total, percentage, point, series, key, x, y
+
+								return output
+							},
+							useHTML: true
+						},
+						series: [{
+							name: 'Pilots',
+							data: alliance_data,
+							size: '60%',
+							dataLabels: {
+								formatter: function() {
+									return  '<b>'+ this.point.name +':</b> '+ this.y + ' Pilot' + (this.y > 1 ? 's' : '' );
+								},
+								color: 'white',
+								distance: -50
+							}
+						}, {
+							name: 'Pilots',
+							data: corp_data,
+							size: '80%',
+							innerSize: '60%',
+							dataLabels: {
+								formatter: function() {
+									return  '<b>'+ this.point.name +':</b> '+ this.y + ' Pilot' + (this.y > 1 ? 's' : '' );
+								}
+							}
+						}]
+					});
 				});
-			});
+			};
+
+			create_chart('#{chart_id}')
 		});
 
 mixin render_pilot(pilot, pilot_id)
@@ -195,4 +199,33 @@ mixin render_alliances(alliances, unaligned, counts, ids)
 
 mixin local()
 	#base
-		+render_alliances(locals.scan.alliances, locals.scan.unaligned, locals.scan.counts, locals.scan.ids)
+		if locals.request.headers.eve_alliancename
+			-var my_alliance_name = locals.request.headers.eve_alliancename
+			-var my_coalition = []
+			-var render_name = my_alliance_name
+			each alliances, coalition in locals.scan.coalitions
+				each alliance, i in alliances
+					if my_alliance_name == alliance
+						-my_coalition = locals.scan.coalitions[coalition]
+						-render_name = coalition
+			-my_coalition.push(my_alliance_name)
+			-var my_alliance = {}
+			each alliance, i in my_coalition
+				if alliance in locals.scan.alliances
+					-my_alliance[alliance] = locals.scan.alliances[alliance]
+					-delete locals.scan.alliances[alliance]		
+			if Object.keys(my_alliance).length == 0
+				+render_alliances(locals.scan.alliances, locals.scan.unaligned, locals.scan.counts, locals.scan.ids)
+			else
+				ul.nav.nav-tabs
+					li.active
+						a(href="#Others", data-toggle="tab") Others
+					li
+						a(href="#MyAlliance", data-toggle="tab")=render_name
+				.tab-content
+					.tab-pane.active(id='Others')
+						+render_alliances(locals.scan.alliances, locals.scan.unaligned, locals.scan.counts, locals.scan.ids)
+					.tab-pane(id="MyAlliance")
+						+render_alliances(my_alliance, {}, locals.scan.counts, locals.scan.ids)
+		else
+			+render_alliances(locals.scan.alliances, locals.scan.unaligned, locals.scan.counts, locals.scan.ids)

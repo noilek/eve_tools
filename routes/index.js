@@ -18,6 +18,9 @@ router.get('/', function(req, res) {
 
 router.get('/local_render', function(req, res) {
 	logger.info('query="%s" : scan="%s" : ip="%s"', req.path, req.query.scan_id, req.ip )
+	var coalitions = {
+		'HERO' : [ 'Test Alliance Please Ignore', 'Bloodline.', 'Spaceship Samurai', 'Of Sound Mind', 'Brave Collective' ]
+	}
 	function final( foundSheets ) {
 		var alliances = {};
 		var unaligned = {};
@@ -61,11 +64,13 @@ router.get('/local_render', function(req, res) {
 					alliances: alliances_to_count,
 					corps: corps_to_count
 				},
-				ids: ids
+				ids: ids,
+				coalitions:coalitions
 			},
 			uuid: uuid,
 			logger: logger,
-			request:req
+			request:req,
+			_:_
 		} );
 	};
 
