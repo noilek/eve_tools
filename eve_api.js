@@ -33,7 +33,6 @@ module.exports = (function() {
 			conn.beginTransaction(function(err) {
 				to_cache.forEach(function(sheet) {
 					var sheet_query = mysql.format("insert into ?? set ?", [ table, sheet ] )
-					logger.info(sheet_query)
 					conn.query( sheet_query, end );
 				} );
 			});

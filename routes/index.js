@@ -19,9 +19,66 @@ router.get('/', function(req, res) {
 router.get('/local_render', function(req, res, next) {
 	try {
 		logger.info('query="%s" : scan="%s" : ip="%s"', req.path, req.query.scan_id, req.ip )
-		var coalitions = {
-			'HERO' : [ 'Test Alliance Please Ignore', 'Bloodline.', 'Spaceship Samurai', 'Of Sound Mind', 'Brave Collective' ]
+		var alliCoa = {
+			'Test Alliance Please Ignore': 'HERO',
+			'Goonswarm Federation': 'CFC',
+			'RAZOR Alliance': 'CFC',
+			'Fidelas Constans': 'CFC',
+			'Fatal Ascension': 'CFC',
+			'Nulli Secunda': 'N3',
+			'Pandemic Legion': 'PL',
+			'Get Off My Lawn': 'CFC',
+			'Northern.': 'N3',
+			'Curatores Veritatis Alliance': 'Provi',
+			'Tactical Narcotics Team': 'CFC',
+			'Yulai Federation': 'Provi',
+			'Nexus Fleet': 'N3',
+			'The Initiative.': 'CFC',
+			'Silent Infinity': 'Provi',
+			'Apocalypse Now.': 'Provi',
+			'Executive Outcomes': 'CFC',
+			'Initiative Mercenaries': 'CFC',
+			'The Volition Cult': 'Provi',
+			'The Unthinkables': 'N3',
+			'HUN Reloaded': 'N3',
+			'Darkspawn.': 'N3',
+			'The Kadeshi': 'N3',
+			'Pangu': 'N3',
+			'Nulli Tertius': 'N3',
+			'Sev3rance': 'Provi',
+			'Circle-Of-Two': 'CFC',
+			'Caladrius Alliance': 'N3',
+			'The Fourth District': 'Provi',
+			'Sanctuary Pact': 'Provi',
+			'I Whip My Slaves Back and Forth': 'CFC',
+			'TSOE Consortium': 'Provi',
+			'Echoes of Nowhere': 'N3',
+			'Care Factor': 'Provi',
+			'Of Sound Mind': 'HERO',
+			'Fear My Baguette': 'Provi',
+			'Brave Collective': 'HERO',
+			'Spaceship Samurai': 'HERO',
+			'SpaceMonkey\'s Alliance': 'CFC',
+			'Gentlemen\'s Agreement': 'CFC',
+			'DARKNESS.': 'N3',
+			'No Safe Haven': 'Provi',
+			'Bloodline.': 'HERO',
+			'Gun Fun Alliance': 'Provi',
+			'Fraternity.': 'N3',
+			'WAFFLES.': 'PL',
+			'The Bastion': 'CFC',
+        }	
+		var coalitions = {}
+
+		for( alliance in alliCoa ) {
+			var coalition = alliCoa[alliance]
+			if(coalition in coalitions) {
+				coalitions[coalition].push(alliance)
+			} else {
+				coalitions[coalition] = [ alliance ]
+			}
 		}
+
 		function final( foundSheets, metadata ) {
 			var alliances = {};
 			var unaligned = {};
@@ -60,7 +117,18 @@ router.get('/local_render', function(req, res, next) {
 					corps_to_count[sheet.corporation] = corps_to_count[sheet.corporation] + 1
 				}
 			}
-
+			var coalition_counts = _.chain(coalitions)
+				.pairs()
+				.map( function(x) { 
+					return [ x[0], _.chain(x[1])
+									.map(function(x) { return alliances_to_count[x] })
+									.reduce(function(a,b) { if(b) { return a+b } else { return a }}, 0)
+									.value()
+							]
+				})
+				.filter(function(x) { return x[1] > 0 } )
+				.object()
+				.value()
 			res.render('index', { section: 'local', headers: req.headers, 
 				system:req.body.system, 
 				scan: {
@@ -68,7 +136,8 @@ router.get('/local_render', function(req, res, next) {
 					unaligned:unaligned,
 					counts: {
 						alliances: alliances_to_count,
-						corps: corps_to_count
+						corps: corps_to_count,
+						coalitions:coalition_counts
 					},
 					ids: ids,
 					coalitions:coalitions,
