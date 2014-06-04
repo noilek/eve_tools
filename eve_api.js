@@ -88,13 +88,6 @@ module.exports = (function() {
 				sheets_to_cache = [],
 				character_sheets_cache = {};
 
-			if( all_characters.length == 0 ) {
-				logger.info('query="%s" : empty-scan : ip="%s"', req.path, req.query.scan_id, req.ip )
-
-				res.redirect('/')
-				return;
-			}
-
 			var cache_cut_off = new Date()
 			cache_cut_off.setTime( cache_cut_off.getTime() - 7 * 24 * 60 * 60 * 1000 )
 			var characters_query = mysql.format("select c.* from localscan.character_sheets c where `character` in (?)", 

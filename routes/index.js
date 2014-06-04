@@ -190,7 +190,12 @@ router.post('/local_scan', function(req, res) {
 		});
 	}
 	var all_characters = req.body.scan.split("\n").map( function(x) { return x.trim().toUpperCase() }).filter( function(x) { return x.length > 0 });
+	if( all_characters.length == 0 ) {
+		logger.info('query="%s" : empty-scan : ip="%s"', req.path, req.query.scan_id, req.ip )
 
+		res.redirect('/')
+		return;
+	}
 	eve_api().get_character_sheets(all_characters, final)
 });
 
