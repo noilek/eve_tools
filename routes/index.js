@@ -16,71 +16,95 @@ router.get('/', function(req, res) {
 	res.render('index', { section: '', headers: req.headers, request: req } );
 });
 
-router.get('/local_render', function(req, res) {
-	logger.info('query="%s" : scan="%s" : ip="%s"', req.path, req.query.scan_id, req.ip )
-	var coalitions = {
-		'HERO' : [ 'Test Alliance Please Ignore', 'Bloodline.', 'Spaceship Samurai', 'Of Sound Mind', 'Brave Collective' ]
-	}
-	function final( foundSheets ) {
-		var alliances = {};
-		var unaligned = {};
-		var alliances_to_count = {}
-		var corps_to_count = {}
-		var ids = {}
-
-		for( sheet_idx in foundSheets ) {
-			var sheet = foundSheets[sheet_idx];
-			if(typeof(sheet.alliance) == "undefined" || ! sheet.alliance ) {
-				if( !(sheet.corporation in unaligned) ) {
-					unaligned[sheet.corporation] = []
-					corps_to_count[sheet.corporation] = 0
-				}
-				unaligned[sheet.corporation].push(sheet.character);
-				corps_to_count[sheet.corporation] = corps_to_count[sheet.corporation] + 1
+router.get('/local_render', function(req, res, next) {
+	try {
+		logger.info('query="%s" : scan="%s" : ip="%s"', req.path, req.query.scan_id, req.ip )
+		var coalitions = {
+			'HERO' : [ 'Test Alliance Please Ignore', 'Bloodline.', 'Spaceship Samurai', 'Of Sound Mind', 'Brave Collective' ]
+		}
+		function final( foundSheets, metadata ) {
+			var alliances = {};
+			var unaligned = {};
+			var alliances_to_count = {}
+			var corps_to_count = {}
+			var ids = {}
+			if(metadata.length == 1)
+			{
+				metadata = metadata[0]
 			} else {
-				if(!(sheet.alliance in alliances)) {
-					alliances[sheet.alliance] = {}
-					alliances_to_count[sheet.alliance] = 0
-					ids[sheet.alliance] = sheet.alliance_id
-				}
-				if(!(sheet.corporation in alliances[sheet.alliance])) {
-					alliances[sheet.alliance][sheet.corporation] = []
-					corps_to_count[sheet.corporation] = 0
-					ids[sheet.corporation] = sheet.corporation_id
-				}
-				alliances[sheet.alliance][sheet.corporation].push(sheet.character);
-				ids[sheet.character] = sheet.character_id
-				alliances_to_count[sheet.alliance] = alliances_to_count[sheet.alliance] + 1
-				corps_to_count[sheet.corporation] = corps_to_count[sheet.corporation] + 1
+				metadata = {}
 			}
-		}
+			for( sheet_idx in foundSheets ) {
+				var sheet = foundSheets[sheet_idx];
+				if(typeof(sheet.alliance) == "undefined" || ! sheet.alliance ) {
+					if( !(sheet.corporation in unaligned) ) {
+						unaligned[sheet.corporation] = []
+						corps_to_count[sheet.corporation] = 0
+					}
+					unaligned[sheet.corporation].push(sheet.character);
+					corps_to_count[sheet.corporation] = corps_to_count[sheet.corporation] + 1
+				} else {
+					if(!(sheet.alliance in alliances)) {
+						alliances[sheet.alliance] = {}
+						alliances_to_count[sheet.alliance] = 0
+						ids[sheet.alliance] = sheet.alliance_id
+					}
+					if(!(sheet.corporation in alliances[sheet.alliance])) {
+						alliances[sheet.alliance][sheet.corporation] = []
+						corps_to_count[sheet.corporation] = 0
+						ids[sheet.corporation] = sheet.corporation_id
+					}
+					alliances[sheet.alliance][sheet.corporation].push(sheet.character);
+					ids[sheet.character] = sheet.character_id
+					alliances_to_count[sheet.alliance] = alliances_to_count[sheet.alliance] + 1
+					corps_to_count[sheet.corporation] = corps_to_count[sheet.corporation] + 1
+				}
+			}
 
-		res.render('index', { section: 'local', headers: req.headers, 
-			system:req.body.system, 
-			scan: {
-				alliances:alliances,
-				unaligned:unaligned,
-				counts: {
-					alliances: alliances_to_count,
-					corps: corps_to_count
+			res.render('index', { section: 'local', headers: req.headers, 
+				system:req.body.system, 
+				scan: {
+					alliances:alliances,
+					unaligned:unaligned,
+					counts: {
+						alliances: alliances_to_count,
+						corps: corps_to_count
+					},
+					ids: ids,
+					coalitions:coalitions,
+					metadata:metadata
 				},
-				ids: ids,
-				coalitions:coalitions
-			},
-			uuid: uuid,
-			logger: logger,
-			request:req,
-			_:_
-		} );
-	};
+				uuid: uuid,
+				logger: logger,
+				request:req,
+				_:_
+			} );
+		};
 
-	var scan_id = req.query.scan_id
-	var scan_query = mysql.format("select c.* from localscan.character_sheets c \
-		join localscan.scan_history h on c.character_id = h.character_id where h.scan_id = ?", scan_id)
-	mysql_pool.query( scan_query, function( err, sheets ) {
-			final(sheets);
-		}
-	)
+		var scan_id = req.query.scan_id
+		var scan_query = mysql.format("select c.* from localscan.character_sheets c \
+			join localscan.scan_history h on c.character_id = h.character_id where h.scan_id = ?", scan_id)
+		mysql_pool.query( scan_query, function( err, sheets ) {
+				if(err) {
+					next(err)
+					return
+				}
+				var metadata_query = mysql.format("select s.scan_id, m.solarsystemname, s.scan_date from localscan.local_scans s\
+					join eveuni.mapSolarSystems m on s.req_system_id = m.solarSystemId\
+					where s.scan_id = ?", scan_id)
+				mysql_pool.query( metadata_query, function(err, metadata) {
+					if(err) {
+						next(err)
+						return
+					}
+					final(sheets, metadata)
+				})
+			}
+		)
+	} catch(err) {
+		next(err)
+		return
+	}
 } );
 
 router.get('/dscan_render', function(req, res) {
@@ -158,7 +182,7 @@ router.post('/d_scan', function( req, res ) {
 					req.headers.eve_solarsystemname, 
 					req.headers.eve_solarsystemid, 
 					req.headers.eve_shipname, 
-					req.headers.eve_shipid
+					req.headers.eve_shiptypeid
 			)
 
 			var endpoint = '/dscan_render?section=dscan&dscan_id=' + dscan_id;
@@ -167,13 +191,17 @@ router.post('/d_scan', function( req, res ) {
 	})
 })
 
-router.post('/local_scan', function(req, res) {
+router.post('/local_scan', function(req, res, next) {
 	function final(foundSheets, all_characters) {
 		if( foundSheets.length == 0 ) {
 			res.redirect("/")
 			return
 		} 
-		eve_api().save_scan_results( all_characters, foundSheets, function(scan_id) { 
+		eve_api().save_scan_results( all_characters, foundSheets, 
+					req.headers.eve_solarsystemid, 
+					req.headers.eve_charid, 
+					req.headers.eve_shiptypeid, 
+					function(scan_id) { 
 			logger.info(
 					'query="%s" : characters="%d" : scan="%s" : ip="%s" : char="%s(%s)" : sys="%s(%s)" : ship : "%s(%s)"', 
 					req.path, foundSheets.length, scan_id, req.ip,
@@ -182,7 +210,7 @@ router.post('/local_scan', function(req, res) {
 					req.headers.eve_solarsystemname, 
 					req.headers.eve_solarsystemid, 
 					req.headers.eve_shipname, 
-					req.headers.eve_shipid
+					req.headers.eve_shiptypeid
 			)
 
 			var endpoint = '/local_render?section=local&scan_id=' + scan_id;
@@ -196,7 +224,11 @@ router.post('/local_scan', function(req, res) {
 		res.redirect('/')
 		return;
 	}
-	eve_api().get_character_sheets(all_characters, final)
+	try {
+		eve_api().get_character_sheets(all_characters, final)
+	} catch(err) {
+		next(err)
+	}
 });
 
 module.exports = router;

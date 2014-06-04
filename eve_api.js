@@ -33,6 +33,7 @@ module.exports = (function() {
 			conn.beginTransaction(function(err) {
 				to_cache.forEach(function(sheet) {
 					var sheet_query = mysql.format("insert into ?? set ?", [ table, sheet ] )
+					logger.info(sheet_query)
 					conn.query( sheet_query, end );
 				} );
 			});
@@ -40,18 +41,21 @@ module.exports = (function() {
 	}
 
 	return {
-		save_scan_results: function(all_characters, foundSheets, final) {
-			var scan_date = new Date()
+		save_scan_results: function(all_characters, foundSheets,  req_system_id, req_character_id, req_ship_id, final) {
+			var scan_date =  new Date()
 			all_characters.sort()
-			var scan_id = md5(all_characters.join())
+			var scan_id = md5(all_characters.join() + req_system_id + req_character_id + req_ship_id )
 			var exists_query = mysql.format('select count(1) as cnt from localscan.scan_history where scan_id = ?', [ scan_id ])
 			mysql_pool.query(exists_query, function(e,r) {
 				if(e) {
 					throw e
 				}
 				if(r[0].cnt == 0) {
+					var local_scan_rows = [ { scan_id:scan_id, req_system_id:req_system_id, req_character_id:req_character_id, req_ship_id:req_ship_id, scan_date: scan_date } ];					
 					var scan_rows = foundSheets.map( function(x) { return { character_id: x.character_id, scan_date: scan_date, scan_id: scan_id } });		
-					cache_objs_to_db(scan_rows, "localscan.scan_history", function() { final( scan_id ) })				
+					cache_objs_to_db(scan_rows, "localscan.scan_history", function() { 
+						cache_objs_to_db( local_scan_rows, "localscan.local_scans", function() { final( scan_id ) })
+					})
 				} else {
 					final(scan_id)
 				}

@@ -197,35 +197,52 @@ mixin render_alliances(alliances, unaligned, counts, ids)
 
 	+render_alliances_table( alliances, alliance_names, counts, ids )
 
+mixin render_coalition(my_alliance_name, coalitions, alliances, unaligned, counts, ids)
+	-var my_coalition = []
+	-var render_name = my_alliance_name
+	each alliances, coalition in coalitions
+		each alliance, i in alliances
+			if my_alliance_name == alliance
+				-my_coalition = coalitions[coalition]
+				-render_name = coalition
+	-my_coalition.push(my_alliance_name)
+	-var my_alliance = {}
+	each alliance, i in my_coalition
+		if alliance in alliances
+			-my_alliance[alliance] = alliances[alliance]
+			-delete alliances[alliance]		
+	if Object.keys(my_alliance).length == 0
+		+render_alliances(alliances, unaligned, counts, ids)
+	else
+		ul.nav.nav-tabs
+			if Object.keys(locals.scan.alliances).length > 0
+				li.active
+					a(href="#Others", data-toggle="tab") Others
+				li
+					a(href="#MyAlliance", data-toggle="tab")=render_name
+			else					
+				li.active
+					a(href="#MyAlliance", data-toggle="tab")=render_name
+
+		.tab-content
+			if Object.keys(locals.scan.alliances).length > 0
+				.tab-pane.active(id='Others')
+					+render_alliances(locals.scan.alliances, locals.scan.unaligned, locals.scan.counts, locals.scan.ids)
+				.tab-pane(id="MyAlliance")
+					+render_alliances(my_alliance, {}, locals.scan.counts, locals.scan.ids)
+			else
+				.tab-pane.active(id="MyAlliance")
+						+render_alliances(my_alliance, {}, locals.scan.counts, locals.scan.ids)
+
+
 mixin local()
 	#base
+		-var date = locals.scan.metadata.scan_date
+		-var date_string = date.toUTCString().replace("GMT", "EVE")
+		if locals.scan.metadata.solarsystemname
+			.well.well-sm Local scan for #{locals.scan.metadata.solarsystemname} at #{date_string}
 		if locals.request.headers.eve_alliancename
 			-var my_alliance_name = locals.request.headers.eve_alliancename
-			-var my_coalition = []
-			-var render_name = my_alliance_name
-			each alliances, coalition in locals.scan.coalitions
-				each alliance, i in alliances
-					if my_alliance_name == alliance
-						-my_coalition = locals.scan.coalitions[coalition]
-						-render_name = coalition
-			-my_coalition.push(my_alliance_name)
-			-var my_alliance = {}
-			each alliance, i in my_coalition
-				if alliance in locals.scan.alliances
-					-my_alliance[alliance] = locals.scan.alliances[alliance]
-					-delete locals.scan.alliances[alliance]		
-			if Object.keys(my_alliance).length == 0
-				+render_alliances(locals.scan.alliances, locals.scan.unaligned, locals.scan.counts, locals.scan.ids)
-			else
-				ul.nav.nav-tabs
-					li.active
-						a(href="#Others", data-toggle="tab") Others
-					li
-						a(href="#MyAlliance", data-toggle="tab")=render_name
-				.tab-content
-					.tab-pane.active(id='Others')
-						+render_alliances(locals.scan.alliances, locals.scan.unaligned, locals.scan.counts, locals.scan.ids)
-					.tab-pane(id="MyAlliance")
-						+render_alliances(my_alliance, {}, locals.scan.counts, locals.scan.ids)
+			+render_coalition(my_alliance_name, locals.scan.coalitions, locals.scan.alliances, locals.scan.unaligned, locals.scan.counts, locals.scan.ids)
 		else
 			+render_alliances(locals.scan.alliances, locals.scan.unaligned, locals.scan.counts, locals.scan.ids)

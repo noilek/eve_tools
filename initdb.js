@@ -10,7 +10,8 @@ module.exports = (function(pool) {
 		"localscan.character_sheets",
 		"localscan.scan_history",
 		"localscan.dscan_history",
-		"localscan.dscan_contents"
+		"localscan.dscan_contents",
+		"localscan.local_scans"
 	]
 
 	function readDDL(table) {
