@@ -21,6 +21,7 @@ router.get('/local_render', function(req, res, next) {
 		logger.info('query="%s" : scan="%s" : ip="%s"', req.path, req.query.scan_id, req.ip )
 		var alliCoa = {
 			'Test Alliance Please Ignore': 'HERO',
+			'Test Friends Please Ignore': 'HERO',
 			'Goonswarm Federation': 'CFC',
 			'RAZOR Alliance': 'CFC',
 			'Fidelas Constans': 'CFC',
@@ -28,7 +29,7 @@ router.get('/local_render', function(req, res, next) {
 			'Nulli Secunda': 'N3',
 			'Pandemic Legion': 'PL',
 			'Get Off My Lawn': 'CFC',
-			'Northern.': 'N3',
+			'Northern Coalition.': 'N3',
 			'Curatores Veritatis Alliance': 'Provi',
 			'Tactical Narcotics Team': 'CFC',
 			'Yulai Federation': 'Provi',

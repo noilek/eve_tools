@@ -257,12 +257,12 @@ mixin render_coalition(my_alliance_name, coalitions, alliances, unaligned, count
 					li.active
 						a(href="##{coalition_name}", data-toggle="tab") #{coalition_name} (#{count})
 							.progress(style="width:100px")
-								.progress-bar.progress-bar(role="progressbar", aria-valuenow=count, aria-valuemin=0, aria-valuemax=total, style="width:#{percent}%") #{count}
+								.progress-bar.progress-bar(role="progressbar", aria-valuenow=count, aria-valuemin=0, aria-valuemax=total, style="width:#{percent}%") #{percent.toFixed(1)}%
 				else
 					li
 						a(href="##{coalition_name}", data-toggle="tab")=coalition_name+ " (" + count + ")"
 							.progress(style="width:100px")
-								.progress-bar(role="progressbar", aria-valuenow=count, aria-valuemin=0, aria-valuemax=total, style="width:#{percent}%")=count
+								.progress-bar(role="progressbar", aria-valuenow=count, aria-valuemin=0, aria-valuemax=total, style="width:#{percent}%")=percent.toFixed(1) + "%"
 
 			else					
 				li.active
@@ -284,5 +284,10 @@ mixin local()
 			-var date_string = date.toUTCString().replace("GMT", "EVE")
 			if locals.scan.metadata.solarsystemname
 				.well.well-sm Local scan for #{locals.scan.metadata.solarsystemname} at #{date_string}
+		else
+			.alert.alert-danger.fade.in
+				button.close(type="button", data-dismiss="alert", aria-hidden="true") x 
+				div Scan was taken without IGB site trust turned on, system name unknown.
+
 		-var my_alliance_name = locals.request.headers.eve_alliancename
 		+render_coalition(my_alliance_name, locals.scan.coalitions, locals.scan.alliances, locals.scan.unaligned, locals.scan.counts, locals.scan.ids)
