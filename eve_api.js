@@ -13,8 +13,9 @@ module.exports = (function() {
 			function end( err, query_res ) {
 				if(err) {
 					conn.rollback()		
-					conn.release()			
-					throw err
+					conn.release()	
+					err.message = err.message + " (insert caching to " + table + ")"
+					cb(err)
 				}
 				results.push(query_res)
 				if(results.length == to_cache.length) {
@@ -22,15 +23,18 @@ module.exports = (function() {
 						if(err) {
 							conn.rollback()
 							conn.release()
-							throw err
+							cb(err)
 						}
 						conn.release();
-						cb()
+						cb(err)
 					});
 				}
 			}
 
 			conn.beginTransaction(function(err) {
+				if(err) {
+					cb(err)
+				}
 				to_cache.forEach(function(sheet) {
 					var sheet_query = mysql.format("insert into ?? set ?", [ table, sheet ] )
 					conn.query( sheet_query, end );
@@ -47,16 +51,20 @@ module.exports = (function() {
 			var exists_query = mysql.format('select count(1) as cnt from localscan.scan_history where scan_id = ?', [ scan_id ])
 			mysql_pool.query(exists_query, function(e,r) {
 				if(e) {
-					throw e
+					final("", e)
 				}
 				if(r[0].cnt == 0) {
 					var local_scan_rows = [ { scan_id:scan_id, req_system_id:req_system_id, req_character_id:req_character_id, req_ship_id:req_ship_id, scan_date: scan_date } ];					
 					var scan_rows = foundSheets.map( function(x) { return { character_id: x.character_id, scan_date: scan_date, scan_id: scan_id } });		
-					cache_objs_to_db(scan_rows, "localscan.scan_history", function() { 
-						cache_objs_to_db( local_scan_rows, "localscan.local_scans", function() { final( scan_id ) })
+					cache_objs_to_db(scan_rows, "localscan.scan_history", function(err) { 
+						if(err) {
+							final("", err)
+							return
+						}
+						cache_objs_to_db( local_scan_rows, "localscan.local_scans", function(err) { final( scan_id, err ) })
 					})
 				} else {
-					final(scan_id)
+					final(scan_id, e)
 				}
 			})
 
@@ -68,18 +76,15 @@ module.exports = (function() {
 			var dscan_id = md5(flat_results)
 			var exists_query = mysql.format('select count(1) as cnt from localscan.dscan_history where dscan_id = ?', [ dscan_id ])
 			mysql_pool.query(exists_query, function(e,r) {
-				if(e) {
-					throw e
-				}
 				if(r[0].cnt == 0) {
 					var dscan_rows = _.map(results_num, function(x) { return { type_id: x[0], num: x[1], dscan_id: dscan_id} })
 					var dscan_ent = [ {dscan_id:dscan_id, solarsystem_id:solarsystem_id, character_id:char_id, scan_date:scan_date}]
 
-					cache_objs_to_db(dscan_rows, "localscan.dscan_contents", function() { 
-						cache_objs_to_db(dscan_ent, "localscan.dscan_history", function() { final(dscan_id) } )
+					cache_objs_to_db(dscan_rows, "localscan.dscan_contents", function(err) { 
+						cache_objs_to_db(dscan_ent, "localscan.dscan_history", function(err) { final(dscan_id, err) } )
 					} )					
 				} else {
-					final(dscan_id)
+					final(dscan_id, e)
 				}
 			})
 		},
@@ -98,9 +103,8 @@ module.exports = (function() {
 
 			mysql_pool.query(characters_query, function(e,matched) {
 				if(e) {
-					logger.warn("query %s - error: ", characters_query, e)
+					final([], [], e)
 				}
-
 				for (rowidx in matched) {
 					row = matched[rowidx]
 					character_sheets_cache[row.character.toUpperCase()] = row;
@@ -116,7 +120,7 @@ module.exports = (function() {
 				}
 
 				if(needed_characters.length == 0 ) {
-					final(characterSheets, all_characters);
+					final(characterSheets, all_characters, e);
 				}
 
 				function chunk(arr, factor) {
@@ -140,8 +144,7 @@ module.exports = (function() {
 
 						xml2js.parseString(body, function( err, character_ids ) {
 							if(err) {
-								logger.warn("Error '%s' parsing %s", err, body)
-								return;
+								final([], [], err)
 							}
 							var charactersToIds = {}
 							var idsToCharacters = {}
@@ -176,8 +179,8 @@ module.exports = (function() {
 										if(characterSheets.length == all_characters.length) {
 											var scan_date = new Date()
 											sheets_to_cache = sheets_to_cache.map( function(x) { x['retrieved'] = scan_date; return x });
-											cache_objs_to_db(sheets_to_cache, 'localscan.character_sheets', function() {
-												final(characterSheets, all_characters);
+											cache_objs_to_db(sheets_to_cache, 'localscan.character_sheets', function(err) {
+												final(characterSheets, all_characters, err);
 											} );
 										}
 									} );

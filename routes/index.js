@@ -177,7 +177,7 @@ router.get('/local_render', function(req, res, next) {
 	}
 } );
 
-router.get('/dscan_render', function(req, res) {
+router.get('/dscan_render', function(req, res, next) {
 	logger.info('query="%s" : scan="%s" : ip="%s"', req.path, req.query.dscan_id, req.ip )
 
 	var lookup_sql = mysql.format("select t.typeName, c.categoryName, g.groupName, r.raceName, d.num " +
@@ -190,7 +190,8 @@ router.get('/dscan_render', function(req, res) {
 	)
 	mysql_pool.query( lookup_sql, function(err, results) {
 		if(err) {
-			throw err
+			next(err)
+			return
 		}
 		var scan_results = _.map(results, function(x) { return _.pick(x, [ 'typeName', 'categoryName', 'groupName', 'raceName', 'num']) } )
 
@@ -224,7 +225,7 @@ router.get('/dscan_render', function(req, res) {
 	} )
 })
 
-router.post('/d_scan', function( req, res ) {
+router.post('/d_scan', function( req, res, next ) {
 	var filter_blank = function(x) { return x.length == 3 }
 	var all_scan_results = req.body.dscan.split("\n").map( function(x) { return x.trim().split("\t") }).filter(filter_blank).map( function(x) {
 		return { name: x[0], type_name: x[1], distance: x[2] }
@@ -240,10 +241,15 @@ router.post('/d_scan', function( req, res ) {
 
 	mysql_pool.query(lookup_sql, function( err, results ) {
 		if(err) {
-			throw err
+			next(err)
+			return
 		}
 		var results_num = _.map( results, function(x) { return [ x.typeId, observed_types[x.typeName]] } )
-		eve_api().save_dscan_results(results_num, req.headers.eve_charid, req.headers.eve_solarsystemid, function(dscan_id) {
+		eve_api().save_dscan_results(results_num, req.headers.eve_charid, req.headers.eve_solarsystemid, function(dscan_id, err) {
+			if(err) {
+				next(err)
+				return
+			}
 			logger.info(
 					'query="%s" : things="%d" : scan="%s" : ip="%s" : char="%s(%s)" : sys="%s(%s)" : ship : "%s(%s)"', 
 					req.path, results_num.length, dscan_id, req.ip,
@@ -262,7 +268,11 @@ router.post('/d_scan', function( req, res ) {
 })
 
 router.post('/local_scan', function(req, res, next) {
-	function final(foundSheets, all_characters) {
+	function final(foundSheets, all_characters, err) {
+		if(err) {
+			next(err)
+			return
+		}
 		if( foundSheets.length == 0 ) {
 			res.redirect("/")
 			return
@@ -271,16 +281,20 @@ router.post('/local_scan', function(req, res, next) {
 					req.headers.eve_solarsystemid, 
 					req.headers.eve_charid, 
 					req.headers.eve_shiptypeid, 
-					function(scan_id) { 
+					function(scan_id, err) { 
+			if(err) {
+				next(err)
+				return
+			}
 			logger.info(
-					'query="%s" : characters="%d" : scan="%s" : ip="%s" : char="%s(%s)" : sys="%s(%s)" : ship : "%s(%s)"', 
-					req.path, foundSheets.length, scan_id, req.ip,
-					req.headers.eve_charname,
-					req.headers.eve_charid, 
-					req.headers.eve_solarsystemname, 
-					req.headers.eve_solarsystemid, 
-					req.headers.eve_shipname, 
-					req.headers.eve_shiptypeid
+				'query="%s" : characters="%d" : scan="%s" : ip="%s" : char="%s(%s)" : sys="%s(%s)" : ship : "%s(%s)"', 
+				req.path, foundSheets.length, scan_id, req.ip,
+				req.headers.eve_charname,
+				req.headers.eve_charid, 
+				req.headers.eve_solarsystemname, 
+				req.headers.eve_solarsystemid, 
+				req.headers.eve_shipname, 
+				req.headers.eve_shiptypeid
 			)
 
 			var endpoint = '/local_render?section=local&scan_id=' + scan_id;
@@ -288,6 +302,7 @@ router.post('/local_scan', function(req, res, next) {
 		});
 	}
 	var all_characters = req.body.scan.split("\n").map( function(x) { return x.trim().toUpperCase() }).filter( function(x) { return x.length > 0 });
+	all_characters = _.uniq(all_characters)
 	if( all_characters.length == 0 ) {
 		logger.info('query="%s" : empty-scan : ip="%s"', req.path, req.query.scan_id, req.ip )
 
@@ -298,6 +313,7 @@ router.post('/local_scan', function(req, res, next) {
 		eve_api().get_character_sheets(all_characters, final)
 	} catch(err) {
 		next(err)
+		return
 	}
 });
 
