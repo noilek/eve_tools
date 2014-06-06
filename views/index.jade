@@ -3,6 +3,7 @@ extends layout
 include header
 include local
 include dscan
+include blt
 
 block content
 	+header(locals.section)
@@ -11,3 +12,5 @@ block content
 			+local()
 		when "dscan"
 			+dscan()
+		when "blt"
+			+blt()

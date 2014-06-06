@@ -89,7 +89,37 @@ module.exports = (function() {
 			})
 		},
 
+		get_player_outposts: function(final) {
+			var requestString = "https://api.eveonline.com/eve/ConquerableStationList.xml.aspx"
+			request({ url:requestString}, function(err, response, body) {
+				if(err) {
+					final([], err)
+				}
+				xml2js.parseString(body, function( err, contracts ) {
+					if(err) {
+						final([], err)
+					}				
+					var rows = _.map(contracts.eveapi.result[0].rowset[0].row, function(x) { return x['$'] })
+					final(rows, err)
+				} )
+			} )
+		},		
 
+		get_corp_contract_details: function(key_id, vcode, final) {
+			var requestString = "https://api.eveonline.com/corp/Contracts.xml.aspx?keyID=" + key_id + "&vCode=" + vcode
+			request({ url:requestString}, function(err, response, body) {
+				if(err) {
+					final([], err)
+				}
+				xml2js.parseString(body, function( err, contracts ) {
+					if(err) {
+						final([], err)
+					}				
+					var rows = _.map(contracts.eveapi.result[0].rowset[0].row, function(x) { return x['$'] })
+					final(rows, err)
+				} )
+			} )
+		},
 		get_character_sheets: function (all_characters, final) {
 			var needed_characters = [], 
 				characterSheets = [],
@@ -161,6 +191,9 @@ module.exports = (function() {
 								var character_sheet_req = "https://api.eveonline.com/eve/CharacterInfo.xml.aspx?characterID=" + character_id;
 								request({ pool:pool, url: character_sheet_req }, function(err, response, body) {
 									xml2js.parseString(body, function( err, sheet ) {
+										if(err) {
+											final([],[],err)
+										}
 										if(!('result' in sheet.eveapi)) {
 											all_characters.splice( all_characters.indexOf( idsToCharacters[character_id] ), 1)
 										} else {

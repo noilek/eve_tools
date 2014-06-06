@@ -1,0 +1,21 @@
+mixin blt()
+	table.table.table-striped.table-bordered
+		tr
+			th Origination
+			th Destination
+			th Reward
+			th Collateral
+			th Volume
+			th Days To Complete
+			th Expires
+			th Title
+		each contract in locals.contracts
+			tr
+				td=locals.station_map[contract.startStationID]			
+				td=locals.station_map[contract.endStationID]
+				td=locals.numeral(parseFloat(contract.reward)).format("0,0")
+				td=locals.numeral(parseFloat(contract.collateral)).format("0,0")
+				td=locals.numeral(parseFloat(contract.volume)).format("0,0.00")
+				td=contract.numDays
+				td=contract.dateExpired
+				td=contract.title

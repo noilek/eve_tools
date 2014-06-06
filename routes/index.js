@@ -4,6 +4,7 @@ var uuid = require('node-uuid').v4;
 var mysql = require('mysql')
 var xml2js = require('xml2js');
 var _ = require('underscore')
+var numeral = require('numeral')
 
 var logger = require('../logger')
 var eve_api = require('../eve_api')
@@ -160,7 +161,7 @@ router.get('/local_render', function(req, res, next) {
 					return
 				}
 				var metadata_query = mysql.format("select s.scan_id, m.solarsystemname, s.scan_date from localscan.local_scans s\
-					join eveuni.mapSolarSystems m on s.req_system_id = m.solarSystemId\
+					join evedb.mapSolarSystems m on s.req_system_id = m.solarSystemId\
 					where s.scan_id = ?", scan_id)
 				mysql_pool.query( metadata_query, function(err, metadata) {
 					if(err) {
@@ -267,6 +268,59 @@ router.post('/d_scan', function( req, res, next ) {
 	})
 })
 
+router.get('/blt', function(req, res, next) {
+	eve_api().get_player_outposts(function(outposts, err) {
+		if(err) {
+			next(err)
+			return
+		}
+		eve_api().get_corp_contract_details( '3277664', '0Czu28JuhkAS0cn6ZbmwKcmW6Nu7Z1dmikC3qHVHr9p2mo9ZA590FU7Zq31AgI9D', function( contracts, err ) {
+			if(err) {
+				next(err)
+				return
+			}
+
+			contracts = _.filter(contracts, function(x) { return x.status == "Outstanding" && x.type == "Courier"})
+			var station_ids = []
+			for( i in contracts) {
+				var contract = contracts[i]
+				station_ids.push(contract.startStationID)
+				station_ids.push(contract.endStationID)
+			}
+			var station_query = mysql.format('select stationID, stationName from evedb.staStations s where s.`stationID` in (?)', [ station_ids ])
+			mysql_pool.query(station_query, function(err, result) {
+				if(err) {
+					next(err)
+					return
+				}
+				var station_map = _.chain(result).map(function(x) { return [ x.stationID, x.stationName ] }).object().value()
+				var station_lookup = _.object([station_ids, station_ids])
+				for(i in outposts) {
+					var outpost = outposts[i]
+					station_map[outpost.stationID] = outpost.stationName
+				}
+				contracts.sort(function(a,b) { 
+					if( a.startStationID == b.startStationID ) {
+						return parseInt(a.reward) < parseInt(b.reward) ? 1 : -1 
+					} else {
+						return station_map[a.startStationID] < station_map[b.startStationID] ? -1 : 1
+					}
+				} )
+				res.render('index', { section: 'blt', headers: req.headers, 
+					contracts:contracts,
+					station_map:station_map,
+					uuid: uuid,
+					logger: logger,
+					request:req,
+					_:_,
+					numeral:numeral
+				} );	
+
+			})
+
+		})
+	})
+})
 router.post('/local_scan', function(req, res, next) {
 	function final(foundSheets, all_characters, err) {
 		if(err) {
