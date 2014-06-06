@@ -6,6 +6,8 @@ var request = require('request');
 
 var logger = require('./logger')
 
+var cached_data = {}
+
 module.exports = (function() {
 	function cache_objs_to_db(to_cache, table, cb) {
 		mysql_pool.getConnection(function(err, conn) {
@@ -90,19 +92,24 @@ module.exports = (function() {
 		},
 
 		get_player_outposts: function(final) {
-			var requestString = "https://api.eveonline.com/eve/ConquerableStationList.xml.aspx"
-			request({ url:requestString}, function(err, response, body) {
-				if(err) {
-					final([], err)
-				}
-				xml2js.parseString(body, function( err, contracts ) {
+			if(! ('outposts' in cached_data) ) {
+				var requestString = "https://api.eveonline.com/eve/ConquerableStationList.xml.aspx"
+				request({ url:requestString}, function(err, response, body) {
 					if(err) {
 						final([], err)
-					}				
-					var rows = _.map(contracts.eveapi.result[0].rowset[0].row, function(x) { return x['$'] })
-					final(rows, err)
+					}
+					xml2js.parseString(body, function( err, contracts ) {
+						if(err) {
+							final([], err)
+						}				
+						var rows = _.map(contracts.eveapi.result[0].rowset[0].row, function(x) { return x['$'] })
+						cached_data.outposts = rows
+						final(rows, err)
+					} )
 				} )
-			} )
+			} else {
+				final(cached_data.outposts)
+			}
 		},		
 
 		get_corp_contract_details: function(key_id, vcode, final) {
