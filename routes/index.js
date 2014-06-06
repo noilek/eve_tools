@@ -269,6 +269,17 @@ router.post('/d_scan', function( req, res, next ) {
 })
 
 router.get('/blt', function(req, res, next) {
+	logger.info(
+			'query="%s" : ip="%s" : char="%s(%s)" : sys="%s(%s)" : ship : "%s(%s)"', 
+			req.path, req.ip,
+			req.headers.eve_charname,
+			req.headers.eve_charid, 
+			req.headers.eve_solarsystemname, 
+			req.headers.eve_solarsystemid, 
+			req.headers.eve_shipname, 
+			req.headers.eve_shiptypeid
+	)
+
 	eve_api().get_player_outposts(function(outposts, err) {
 		if(err) {
 			next(err)
