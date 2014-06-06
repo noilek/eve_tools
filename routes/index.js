@@ -5,16 +5,27 @@ var mysql = require('mysql')
 var xml2js = require('xml2js');
 var _ = require('underscore')
 var numeral = require('numeral')
-
+var moment = require('moment')
 var logger = require('../logger')
 var eve_api = require('../eve_api')
 
 var router = express.Router();
 
+function render(what, res, req, additional_params) {
+	var extended_params = _.extend(additional_params, {
+		_:_,
+		uuid: uuid,
+		logger: logger,
+		request:req,
+		numeral:numeral,
+		moment:moment
+	})
+	res.render(what, extended_params)
+}
 /* GET home page. */
 router.get('/', function(req, res) {
 	logger.info('query="%s" : ip="%s"', req.path, req.ip )	
-	res.render('index', { section: '', headers: req.headers, request: req } );
+	render('index', res, req, { section: '' } );
 });
 
 router.get('/local_render', function(req, res, next) {
@@ -131,7 +142,8 @@ router.get('/local_render', function(req, res, next) {
 				.filter(function(x) { return x[1] > 0 } )
 				.object()
 				.value()
-			res.render('index', { section: 'local', headers: req.headers, 
+			render('index', res, req, { 
+				section: 'local',
 				system:req.body.system, 
 				scan: {
 					alliances:alliances,
@@ -145,10 +157,6 @@ router.get('/local_render', function(req, res, next) {
 					coalitions:coalitions,
 					metadata:metadata
 				},
-				uuid: uuid,
-				logger: logger,
-				request:req,
-				_:_
 			} );
 		};
 
@@ -214,15 +222,12 @@ router.get('/dscan_render', function(req, res, next) {
 			category: count_items(scan_results, 'categoryName'),
 			group: count_items(scan_results, 'groupName')
 		}
-		res.render('index', { section: 'dscan', headers: req.headers, 
-					system:req.body.system, 
-					dscan: by_cat_group,
-					counts:counts,
-					uuid: uuid,
-					logger: logger,
-					request:req,
-					_:_
-				} );	
+		render('index', res, req, { 
+			section: 'dscan', 
+			system:req.body.system, 
+			dscan: by_cat_group,
+			counts:counts,
+		} );	
 	} )
 })
 
@@ -285,7 +290,7 @@ router.get('/blt', function(req, res, next) {
 			next(err)
 			return
 		}
-		eve_api().get_corp_contract_details( '3277664', '0Czu28JuhkAS0cn6ZbmwKcmW6Nu7Z1dmikC3qHVHr9p2mo9ZA590FU7Zq31AgI9D', function( contracts, err ) {
+		eve_api().get_corp_contract_details( '3277664', '0Czu28JuhkAS0cn6ZbmwKcmW6Nu7Z1dmikC3qHVHr9p2mo9ZA590FU7Zq31AgI9D', function( contracts, cache_until, err ) {
 			if(err) {
 				next(err)
 				return
@@ -317,14 +322,11 @@ router.get('/blt', function(req, res, next) {
 						return station_map[a.startStationID] < station_map[b.startStationID] ? -1 : 1
 					}
 				} )
-				res.render('index', { section: 'blt', headers: req.headers, 
+				render('index', res, req, { 
+					section: 'blt', 
 					contracts:contracts,
 					station_map:station_map,
-					uuid: uuid,
-					logger: logger,
-					request:req,
-					_:_,
-					numeral:numeral
+					cache_until:cache_until,
 				} );	
 
 			})

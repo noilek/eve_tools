@@ -3,10 +3,12 @@ var xml2js = require('xml2js');
 var md5 = require('MD5');
 var _ = require('underscore')
 var request = require('request');
-
+var moment = require('moment')
 var logger = require('./logger')
 
-var cached_data = {}
+var cached_data = {
+	corp_contracts:{}
+}
 
 module.exports = (function() {
 	function cache_objs_to_db(to_cache, table, cb) {
@@ -113,17 +115,30 @@ module.exports = (function() {
 		},		
 
 		get_corp_contract_details: function(key_id, vcode, final) {
+			var cache_key = key_id + vcode
+			var now = new Date()
+			if( cache_key in cached_data.corp_contracts && cached_data.corp_contracts[cache_key].cache_until.getTime() > now.getTime()) {
+				final(cached_data.corp_contracts[cache_key].data, cached_data.corp_contracts[cache_key].cache_until)
+			}
 			var requestString = "https://api.eveonline.com/corp/Contracts.xml.aspx?keyID=" + key_id + "&vCode=" + vcode
 			request({ url:requestString}, function(err, response, body) {
 				if(err) {
-					final([], err)
+					final([], null, err)
 				}
 				xml2js.parseString(body, function( err, contracts ) {
 					if(err) {
-						final([], err)
-					}				
+						final([], null, err)
+					}	
+					var cached_until = moment.utc(contracts.eveapi.cachedUntil, "YYYY-MM-DD HH:mm:ss")
+					//var foo = cached_until.format()
+					var cached_date = cached_until.clone().toDate()
 					var rows = _.map(contracts.eveapi.result[0].rowset[0].row, function(x) { return x['$'] })
-					final(rows, err)
+					cached_data.corp_contracts[cache_key] = {
+						cache_until:cached_date,
+						data:rows
+					}
+					cached_data.corp_contracts[cache_key].cache_until = cached_date
+					final(rows, cached_date, err)
 				} )
 			} )
 		},

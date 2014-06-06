@@ -1,4 +1,10 @@
 mixin blt()
+	-var cache_until = locals.moment.utc(locals.cache_until)
+	-var cache_until_orig = cache_until.clone()
+	-cache_until.subtract('minutes', 15)
+	-var how_long = cache_until.fromNow(true)
+	-var next_update = cache_until_orig.fromNow(true)
+	.alert.alert-warning Data is from #{how_long} ago, next update available in #{next_update}
 	table.table.table-striped.table-bordered
 		tr
 			th Origination
@@ -17,5 +23,5 @@ mixin blt()
 				td=locals.numeral(parseFloat(contract.collateral)).format("0,0")
 				td=locals.numeral(parseFloat(contract.volume)).format("0,0.00")
 				td=contract.numDays
-				td=contract.dateExpired
+				td=locals.moment(contract.dateExpired, "YYYY-MM-DD HH:mm:ss").fromNow()
 				td=contract.title

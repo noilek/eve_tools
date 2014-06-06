@@ -26,6 +26,7 @@
     "winston-mail": "0.2.7",
     "forever": "0.11.1",
     "underscore": "1.6.0",
-    "numeral" : "1.5.3"
+    "numeral" : "1.5.3",
+    "moment" : "2.6.0"
   }
 }
