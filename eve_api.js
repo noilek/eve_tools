@@ -11,11 +11,10 @@ var cached_data = {
 }
 
 module.exports = (function() {
-	var being_cached = null
 	function cache_objs_to_db(to_cache, table, cb) {
 		mysql_pool.getConnection(function(err, conn) {
 			var results = []
-			function end( err, query_res ) {
+			function end( err, query_res, statement ) {
 				if(err) {
 					conn.rollback()		
 					conn.release()	
@@ -42,8 +41,8 @@ module.exports = (function() {
 				}
 				to_cache.forEach(function(sheet) {					
 					var sheet_query = mysql.format("insert into ?? set ?", [ table, sheet ] )
-					being_cached = sheet_query
-					conn.query( sheet_query, end );
+
+					conn.query( sheet_query, function( err, query_res ) { end(err, query_res, sheet_query) } );
 				} );
 			});
 		});
