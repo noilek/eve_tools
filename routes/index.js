@@ -292,7 +292,7 @@ router.get('/activity', function( req, res, next) {
 		on h.solarSystem_Id = m.solarSystemId \
 		left outer join localscan.character_sheets c \
 		on c.character_id = h.character_id		\
-		'
+		order by scan_date desc'
 
 	var localscan_query = 'select s.*, m.solarSystemName, c.`character`, h.num from localscan.local_scans s \
 		join (select scan_id, count(1) as num from localscan.scan_history h group by scan_id ) h \
@@ -301,7 +301,7 @@ router.get('/activity', function( req, res, next) {
 		on s.req_system_id = m.solarSystemId \
 		left outer join localscan.character_sheets c \
 		on c.character_id = s.req_character_id \
-		'
+		order by scan_date desc'
 
 	mysql_pool.query( dscan_query, function(err, dscan_res) {
 		if(err) {
