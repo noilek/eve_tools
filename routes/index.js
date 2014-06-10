@@ -285,23 +285,25 @@ router.get('/activity', function( req, res, next) {
 			req.headers.eve_shiptypeid
 	)
 
-	var dscan_query = 'select h.*, m.solarSystemName, c.`character`, c.num from localscan.dscan_history h \
+	var dscan_query = mysql.format( 'select h.*, m.solarSystemName, c.`character`, c.num from localscan.dscan_history h \
 		join ( select dscan_id, count(1) as num from localscan.dscan_contents group by dscan_id ) c \
 		on h.dscan_id = c.dscan_id \
 		left outer join evedb.mapSolarSystems m \
 		on h.solarSystem_Id = m.solarSystemId \
 		left outer join localscan.character_sheets c \
-		on c.character_id = h.character_id		\
-		order by scan_date desc'
+		on c.character_id = h.character_id \
+		where scan_date > ?		\
+		order by scan_date desc', [ moment().subtract('days', 5).toDate() ] )
 
-	var localscan_query = 'select s.*, m.solarSystemName, c.`character`, h.num from localscan.local_scans s \
+	var localscan_query = mysql.format( 'select s.*, m.solarSystemName, c.`character`, h.num from localscan.local_scans s \
 		join (select scan_id, count(1) as num from localscan.scan_history h group by scan_id ) h \
 		on h.scan_id = s.scan_id \
 		left outer join evedb.mapSolarSystems m \
 		on s.req_system_id = m.solarSystemId \
 		left outer join localscan.character_sheets c \
 		on c.character_id = s.req_character_id \
-		order by scan_date desc'
+		where scan_date > ? \
+		order by scan_date desc', [ moment().subtract( 'days', 5 ).toDate() ] )
 
 	mysql_pool.query( dscan_query, function(err, dscan_res) {
 		if(err) {
