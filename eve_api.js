@@ -18,7 +18,7 @@ module.exports = (function() {
 				if(err) {
 					conn.rollback()		
 					conn.release()	
-					err.message = err.message + " (" + being_cached + ")"
+					err.message = err.message + " (" + statement + ")"
 					cb(err)
 				}
 				results.push(query_res)
