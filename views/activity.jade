@@ -1,30 +1,50 @@
 mixin activity()
-	h1 Local Scan
-	table.table.table-striped.table-bordered
-		tr
-			th Scan Time
-			th Number of Results
-			th Solar System
-			th Character
-		each scan in locals.localscan
-			tr
-				td
-					a(href='/local_render?section=local&scan_id=#{scan.scan_id}')=scan.scan_date
-				td=scan.num
-				td=scan.solarSystemName
-				td=scan.character
+	-locals.logger.info(locals.local_page)
+	ul.nav.nav-tabs
+		li.active 
+			a(href="#local", data-toggle="tab") Local Scan
+		li
+			a(href="#dscan", data-toggle="tab") DScan
+	.tab-content
+		.tab-pane.active#local
+			table.table.table-striped.table-bordered
+				tr
+					th Scan Time
+					th Number of Results
+					th Solar System
+					th Character
+				each scan in locals.localscan
+					tr
+						td
+							a(href='/local_render?section=local&scan_id=#{scan.scan_id}')=scan.scan_date
+						td=scan.num
+						td=scan.solarSystemName
+						td=scan.character
+			ul.pager
+				if locals.local_page == 0
+					li.disabled 
+						a(href="#") Previous
+				else
+					li
+						a(href="/activity?local_page=#{locals.local_page - 1}&dscan_page=#{locals.dscan_page}") Previous
+				if locals.local_next
+					li
+						a(href="/activity?local_page=#{locals.local_page + 1}&dscan_page=#{locals.dscan_page}") Next
+				else
+						li.disabled 
+							a(href="#") Next
 
-	h1 DScan
-	table.table.table-striped.table-bordered
-		tr
-			th Scan Time
-			th Number of Results
-			th Solar System
-			th Character
-		each scan in locals.dscan
-			tr
-				td
-					a(href='/dscan_render?section=local&dscan_id=#{scan.dscan_id}')=scan.scan_date
-				td=scan.num
-				td=scan.solarSystemName
-				td=scan.character
+		.tab-pane#dscan
+			table.table.table-striped.table-bordered
+				tr
+					th Scan Time
+					th Number of Results
+					th Solar System
+					th Character
+				each scan in locals.dscan
+					tr
+						td
+							a(href='/dscan_render?section=local&dscan_id=#{scan.dscan_id}')=scan.scan_date
+						td=scan.num
+						td=scan.solarSystemName
+						td=scan.character

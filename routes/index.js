@@ -284,6 +284,9 @@ router.get('/activity', function( req, res, next) {
 			req.headers.eve_shipname, 
 			req.headers.eve_shiptypeid
 	)
+	logger.info(typeof(req.query.local_page))
+	var local_page = req.query.local_page ? parseInt(req.query.local_page): 0
+	var dscan_page = req.query.dscan_page ? parseInt(req.query.dscan_page) : 0
 
 	var dscan_query = mysql.format( 'select h.*, m.solarSystemName, c.`character`, c.num from localscan.dscan_history h \
 		join ( select dscan_id, count(1) as num from localscan.dscan_contents group by dscan_id ) c \
@@ -292,8 +295,8 @@ router.get('/activity', function( req, res, next) {
 		on h.solarSystem_Id = m.solarSystemId \
 		left outer join localscan.character_sheets c \
 		on c.character_id = h.character_id \
-		where scan_date > ?		\
-		order by scan_date desc', [ moment().subtract('days', 5).toDate() ] )
+		order by scan_date desc\
+		limit ?,?', [ dscan_page * 20, (dscan_page + 1) * 20 ] )
 
 	var localscan_query = mysql.format( 'select s.*, m.solarSystemName, c.`character`, h.num from localscan.local_scans s \
 		join (select scan_id, count(1) as num from localscan.scan_history h group by scan_id ) h \
@@ -302,8 +305,8 @@ router.get('/activity', function( req, res, next) {
 		on s.req_system_id = m.solarSystemId \
 		left outer join localscan.character_sheets c \
 		on c.character_id = s.req_character_id \
-		where scan_date > ? \
-		order by scan_date desc', [ moment().subtract( 'days', 5 ).toDate() ] )
+		order by scan_date desc \
+		limit ?,?', [ local_page * 20, (local_page + 1)  * 20 ] )
 
 	mysql_pool.query( dscan_query, function(err, dscan_res) {
 		if(err) {
@@ -320,7 +323,11 @@ router.get('/activity', function( req, res, next) {
 			render('index', res, req, { 
 				section: 'activity', 
 				dscan:dscan_res,
-				localscan: localscan_res
+				localscan: localscan_res,
+				local_page:local_page,
+				dscan_page:dscan_page,
+				local_next:localscan_res.length == 20,
+				dscan_next:dscan_res.length == 20
 			} );	
  		})
 	})
