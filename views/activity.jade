@@ -1,0 +1,30 @@
+mixin activity()
+	h1 Local Scan
+	table.table.table-striped.table-bordered
+		tr
+			th Scan Time
+			th Number of Results
+			th Solar System
+			th Character
+		each scan in locals.localscan
+			tr
+				td
+					a(href='/local_render?section=local&scan_id=#{scan.scan_id}')=scan.scan_date
+				td=scan.num
+				td=scan.solarSystemName
+				td=scan.character
+
+	h1 DScan
+	table.table.table-striped.table-bordered
+		tr
+			th Scan Time
+			th Number of Results
+			th Solar System
+			th Character
+		each scan in locals.dscan
+			tr
+				td
+					a(href='/local_render?section=local&scan_id=#{scan.scan_id}')=scan.scan_date
+				td=scan.num
+				td=scan.solarSystemName
+				td=scan.character
