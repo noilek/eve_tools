@@ -24,7 +24,7 @@ mixin activity()
 		each scan in locals.dscan
 			tr
 				td
-					a(href='/local_render?section=local&scan_id=#{scan.scan_id}')=scan.scan_date
+					a(href='/dscan_render?section=local&dscan_id=#{scan.dscan_id}')=scan.scan_date
 				td=scan.num
 				td=scan.solarSystemName
 				td=scan.character
