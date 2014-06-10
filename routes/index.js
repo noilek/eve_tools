@@ -273,6 +273,46 @@ router.post('/d_scan', function( req, res, next ) {
 	})
 })
 
+router.get('/activity', function( req, res, next) {
+	logger.info(
+			'query="%s" : ip="%s" : char="%s(%s)" : sys="%s(%s)" : ship : "%s(%s)"', 
+			req.path, req.ip,
+			req.headers.eve_charname,
+			req.headers.eve_charid, 
+			req.headers.eve_solarsystemname, 
+			req.headers.eve_solarsystemid, 
+			req.headers.eve_shipname, 
+			req.headers.eve_shiptypeid
+	)
+
+	var dscan_query = 'select h.*, c.num from localscan.dscan_history h \
+		join ( select dscan_id, count(1) as num from localscan.dscan_contents group by scan_id ) c \
+		on h.dscan_id = c.dscan_id'
+
+	var localscan_query = 'select s.*, h.num from localscan.local_scans s \
+		join (select scan_id, count(1) as num from localscan.scan_history h group by scan_id ) h \
+		on h.scan_id = s.scan_id'
+
+	mysql_pool.query( dscan_query, function(err, dscan_res) {
+		if(err) {
+			next(err)
+			return
+		}
+
+		mysql_pool.query( localscan_query, function(err, localscan_res) {
+			if(err) {
+				next(err)
+				return
+			}
+
+			render('index', res, req, { 
+				section: 'activity', 
+				dscan:dscan_res,
+				localscan: localscan_res
+			} );	
+ 		})
+	})
+})
 router.get('/blt', function(req, res, next) {
 	logger.info(
 			'query="%s" : ip="%s" : char="%s(%s)" : sys="%s(%s)" : ship : "%s(%s)"', 

@@ -4,6 +4,7 @@ include header
 include local
 include dscan
 include blt
+include activity
 
 block content
 	+header(locals.section)
@@ -14,3 +15,5 @@ block content
 			+dscan()
 		when "blt"
 			+blt()
+		when "activity"
+			+activity()
