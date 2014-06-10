@@ -11,6 +11,7 @@ var cached_data = {
 }
 
 module.exports = (function() {
+	var being_cached = null
 	function cache_objs_to_db(to_cache, table, cb) {
 		mysql_pool.getConnection(function(err, conn) {
 			var results = []
@@ -18,7 +19,7 @@ module.exports = (function() {
 				if(err) {
 					conn.rollback()		
 					conn.release()	
-					err.message = err.message + " (insert caching to " + table + ")"
+					err.message = err.message + " (" + being_cached + ")"
 					cb(err)
 				}
 				results.push(query_res)
@@ -39,8 +40,9 @@ module.exports = (function() {
 				if(err) {
 					cb(err)
 				}
-				to_cache.forEach(function(sheet) {
+				to_cache.forEach(function(sheet) {					
 					var sheet_query = mysql.format("insert into ?? set ?", [ table, sheet ] )
+					being_cached = sheet_query
 					conn.query( sheet_query, end );
 				} );
 			});
