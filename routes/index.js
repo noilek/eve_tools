@@ -421,23 +421,23 @@ router.get('/blt', function(req, res, next) {
 				station_ids.push(contract.startStationID)
 				station_ids.push(contract.endStationID)
 			}
-			var station_query = mysql.format('select stationID, stationName from evedb.staStations s where s.`stationID` in (?)', [ station_ids ])
+			var station_query = mysql.format('select stationID, stationName, solarSystemId from evedb.staStations s where s.`stationID` in (?)', [ station_ids ])
 			mysql_pool.query(station_query, function(err, result) {
 				if(err) {
 					next(err)
 					return
 				}
-				var station_map = _.chain(result).map(function(x) { return [ x.stationID, x.stationName ] }).object().value()
+				var station_map = _.chain(result).map(function(x) { return [ x.stationID, { name: x.stationName, system:x.solarSystemId } ] }).object().value()
 				var station_lookup = _.object([station_ids, station_ids])
 				for(i in outposts) {
 					var outpost = outposts[i]
-					station_map[outpost.stationID] = outpost.stationName
+					station_map[outpost.stationID] = {name: outpost.stationName, system:outpost.solarSystemId}
 				}
 				contracts.sort(function(a,b) { 
 					if( a.startStationID == b.startStationID ) {
 						return parseInt(a.reward) < parseInt(b.reward) ? 1 : -1 
 					} else {
-						return station_map[a.startStationID] < station_map[b.startStationID] ? -1 : 1
+						return station_map[a.startStationID].name < station_map[b.startStationID].name ? -1 : 1
 					}
 				} )
 				render('index', res, req, { 

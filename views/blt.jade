@@ -12,16 +12,18 @@ mixin blt()
 			th Reward
 			th Collateral
 			th Volume
+			th Isk/m3
 			th Days To Complete
 			th Expires
 			th Title
 		each contract in locals.contracts
 			tr
-				td=locals.station_map[contract.startStationID]			
-				td=locals.station_map[contract.endStationID]
+				td=locals.station_map[contract.startStationID].name			
+				td=locals.station_map[contract.endStationID].name
 				td=locals.numeral(parseFloat(contract.reward)).format("0,0")
 				td=locals.numeral(parseFloat(contract.collateral)).format("0,0")
 				td=locals.numeral(parseFloat(contract.volume)).format("0,0.00")
+				td=locals.numeral(parseFloat(contract.reward)/parseFloat(contract.volume)).format("0,0.00")
 				td=contract.numDays
 				td=locals.moment(contract.dateExpired, "YYYY-MM-DD HH:mm:ss").fromNow()
 				td=contract.title
