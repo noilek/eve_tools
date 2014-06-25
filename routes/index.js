@@ -197,45 +197,129 @@ router.get('/dscan_render', function(req, res, next) {
 		"left outer join evedb.chrRaces r on t.raceId = r.raceId " +
 		"where d.dscan_id = ?", [ req.query.dscan_id ]
 	)
-	mysql_pool.query( lookup_sql, function(err, results) {
+
+	var dscan_history_sql = mysql.format("select m.solarsystemname, solarsystem_id, scan_date from localscan.dscan_history h join evedb.mapSolarSystems m on h.solarsystem_id = m.solarSystemId where dscan_id = ?", [ req.query.dscan_id ] )
+
+	mysql_pool.query(dscan_history_sql, function(err, metadata) {
 		if(err) {
 			next(err)
 			return
 		}
-		var scan_results = _.map(results, function(x) { return _.pick(x, [ 'typeName', 'categoryName', 'groupName', 'raceName', 'num']) } )
+		if(metadata.length == 1) {
+			metadata = metadata[0]
+		} else {
+			metadata = {}
+		}
+		mysql_pool.query( lookup_sql, function(err, results) {
+			if(err) {
+				next(err)
+				return
+			}
+			var scan_results = _.map(results, function(x) { return _.pick(x, [ 'typeName', 'categoryName', 'groupName', 'raceName', 'num']) } )
 
-		var by_category = _.chain(scan_results)
-			.groupBy(function(x) {return(x.categoryName)})
-			.value()
-
-		var by_cat_group = _.object( _.keys(by_category), _.map( _.values(by_category), function(x) { return _.groupBy(x, function(y) { return y.groupName })}))
-
-		function count_items(list, attrib) {
-			return _.chain(list)
-				.groupBy(function(x) { return( x[attrib])})
-				.pairs()
-				.map(function(x) { return [ x[0], _.reduce( x[1], function(x,y) { return x + y.num }, 0 )]})
-				.object()
+			var by_category = _.chain(scan_results)
+				.groupBy(function(x) {return(x.categoryName)})
 				.value()
-		}
-		var counts = { 
-			category: count_items(scan_results, 'categoryName'),
-			group: count_items(scan_results, 'groupName')
-		}
-		render('index', res, req, { 
-			section: 'dscan', 
-			system:req.body.system, 
-			dscan: by_cat_group,
-			counts:counts,
-		} );	
+
+			var by_cat_group = _.object( _.keys(by_category), _.map( _.values(by_category), function(x) { return _.groupBy(x, function(y) { return y.groupName })}))
+
+			function count_items(list, attrib) {
+				return _.chain(list)
+					.groupBy(function(x) { return( x[attrib])})
+					.pairs()
+					.map(function(x) { return [ x[0], _.reduce( x[1], function(x,y) { return x + y.num }, 0 )]})
+					.object()
+					.value()
+			}
+			var counts = { 
+				category: count_items(scan_results, 'categoryName'),
+				group: count_items(scan_results, 'groupName')
+			}
+
+			render('index', res, req, { 
+				section: 'dscan', 
+				system:req.body.system, 
+				dscan: by_cat_group,
+				counts:counts,
+				metadata:metadata
+			} );	
+		} )
 	} )
 })
 
 router.post('/d_scan', function( req, res, next ) {
+	var solar_system_name = null
+	var solar_system_id = null
+	var final_func = function( err, results ) {
+		if(err) {
+			next(err)
+			return
+		}
+		var results_num = _.map( results, function(x) { return [ x.typeId, observed_types[x.typeName]] } )
+		eve_api().save_dscan_results(results_num, req.headers.eve_charid, solar_system_id, function(dscan_id, err) {
+		if(err) {
+			next(err)
+			return
+		}
+		logger.info(
+				'query="%s" : things="%d" : scan="%s" : ip="%s" : char="%s(%s)" : sys="%s(%s)" : ship : "%s(%s)"', 
+				req.path, results_num.length, dscan_id, req.ip,
+				req.headers.eve_charname,
+				req.headers.eve_charid, 
+				req.headers.eve_solarsystemname, 
+				req.headers.eve_solarsystemid, 
+				req.headers.eve_shipname, 
+				req.headers.eve_shiptypeid
+		)
+
+		var endpoint = '/dscan_render?section=dscan&dscan_id=' + dscan_id;
+		res.redirect(endpoint) 
+	} )
+	}
+
+
 	var filter_blank = function(x) { return x.length == 3 }
 	var all_scan_results = req.body.dscan.split("\n").map( function(x) { return x.trim().split("\t") }).filter(filter_blank).map( function(x) {
 		return { name: x[0], type_name: x[1], distance: x[2] }
 	});
+
+
+	for( scan_index in all_scan_results ) {
+		var result = all_scan_results[scan_index]
+		if( result.type_name.indexOf('Planet') > -1 ) {
+			solar_system_name = result.name.replace( /^(.+)\s[IVX]+$/, '$1' )
+		} else if ( result.type_name == 'Moon' || result.type_name == 'Asteroid Belt' ) {
+			solar_system_name = result.name.replace( new RegExp( "(.+)\\s[IVX]+\\s-\\s" + result.type_name + "\\s\\d+"), '$1')
+		} else if ( result.type_name.indexOf('Sun') > -1 ) {
+			solar_system_name = result.name.replace( /^(.+)\s-\sStar$/, '$1')
+		}
+		if(solar_system_name) {
+			break
+		}
+	}
+	logger.info("detected solar system: " + solar_system_name)
+	if(! solar_system_name && req.headers.eve_solarsystemid) {
+		solar_system_name = req.headers.eve_solarsystemname
+		solar_system_id = req.headers.eve_solarsystemid
+	} else {
+		var old_func = final_func
+		final_func = function(err, results) {
+			if(err) {
+				next(err)
+				return
+			}
+			var solar_system_sql = mysql.format("select solarSystemId from evedb.mapSolarSystems where solarsystemname = ?", [ solar_system_name ])
+			mysql_pool.query(solar_system_sql, function(ss_err, ss_results) {
+				if(ss_err) {
+					next(err)
+					return
+				}
+				solar_system_id = ss_results[0].solarSystemId
+				logger.info("got solarSystemId: " +solar_system_id)
+				old_func(err,results)
+			})
+		}
+	}
 
 	var observed_types = _.countBy(all_scan_results, function(x) { return x.type_name } )
 	var lookup_keys = Object.keys(observed_types)
@@ -245,32 +329,7 @@ router.post('/d_scan', function( req, res, next ) {
 
 	var lookup_sql = mysql.format("select typeName, typeId from evedb.invTypes t where typeName in (?)", [lookup_keys])
 
-	mysql_pool.query(lookup_sql, function( err, results ) {
-		if(err) {
-			next(err)
-			return
-		}
-		var results_num = _.map( results, function(x) { return [ x.typeId, observed_types[x.typeName]] } )
-		eve_api().save_dscan_results(results_num, req.headers.eve_charid, req.headers.eve_solarsystemid, function(dscan_id, err) {
-			if(err) {
-				next(err)
-				return
-			}
-			logger.info(
-					'query="%s" : things="%d" : scan="%s" : ip="%s" : char="%s(%s)" : sys="%s(%s)" : ship : "%s(%s)"', 
-					req.path, results_num.length, dscan_id, req.ip,
-					req.headers.eve_charname,
-					req.headers.eve_charid, 
-					req.headers.eve_solarsystemname, 
-					req.headers.eve_solarsystemid, 
-					req.headers.eve_shipname, 
-					req.headers.eve_shiptypeid
-			)
-
-			var endpoint = '/dscan_render?section=dscan&dscan_id=' + dscan_id;
-			res.redirect(endpoint) 
-		})
-	})
+	mysql_pool.query(lookup_sql, final_func)
 })
 
 router.get('/activity', function( req, res, next) {

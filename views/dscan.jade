@@ -22,7 +22,18 @@ mixin dscan()
 	-	return rgb;
 	-}	
 	script(src="/javascripts/jit.js")
-	center(style="padding:10px")
+	-var date = locals.metadata.scan_date
+	if date
+		-var date_string = locals.moment.utc(locals.metadata.scan_date).fromNow(true)
+		if locals.metadata.solarsystemname
+			.well.well-sm Dscan for #{locals.metadata.solarsystemname}, recorded #{date_string} ago
+	else
+		.alert.alert-danger.fade.in
+			button.close(type="button", data-dismiss="alert", aria-hidden="true") x 
+			div Scan was taken without IGB site trust turned on, system name unknown.
+
+
+	center
 		.well.well-sm
 			#treemap
 	.panel-group
@@ -59,13 +70,19 @@ mixin dscan()
 									-group.sort(function(a,b) { return a.num < b.num ? 1 : -1})
 									-var groupCount = locals.counts.group[group_name]
 									-var brightness = ColorLuminance(class_color, (1-groupCount/biggestGroup))
+									-var triple = rgb_to_triple(brightness)
+									-var color = "node"
+									-if(triple[0]*.299 + triple[1]*.587 + triple[2]*.114 > 140) {
+									-	color = "node-black"
+									-}
+
 									-var current_group = { children:[], data:{ size:"12px", "$area" : groupCount },id:"tm"+group_uuid, name:group_name + " (" + groupCount.toString() + ")" }
 									-current_category.children.push(current_group)
 									.col-xs-4
 										.panel-group
 											.panel.panel-info
 												.panel-heading(style="background-color:#{brightness}")
-													a.node(href="##{group_uuid}", data-toggle="collapse", data-parent="#accordian", style="font-size:16px")
+													a(href="##{group_uuid}", data-toggle="collapse", data-parent="#accordian", style="font-size:16px", class=color)
 														span.glyphicon.glyphicon-chevron-right
 														=" " + group_name
 														span.pull-right=groupCount
@@ -82,7 +99,7 @@ mixin dscan()
 																.row(style="background-color:#{count++%2 == 0 ? '#abcdef' : '#dddddd'}")
 																	-var triple = rgb_to_triple(type_brightness)
 																	-var node_class = "node"
-																	-if(triple[0]*.299 + triple[1]*.587 + triple[2]*.114 > 150) {
+																	-if(triple[0]*.299 + triple[1]*.587 + triple[2]*.114 > 140) {
 																	-	node_class = "node-black"
 																	-}
 																	-current_group.children.push({children:[], data: {node_class:node_class,size:"11px", "$color":type_brightness, "$area":num}, id:type_name, name:type_name + " (" + num.toString() + ")"})

@@ -281,9 +281,9 @@ mixin local()
 	#base
 		-var date = locals.scan.metadata.scan_date
 		if date
-			-var date_string = date.toUTCString().replace("GMT", "EVE")
+			-var date_string = locals.moment.utc(locals.scan.metadata.scan_date).fromNow(true)
 			if locals.scan.metadata.solarsystemname
-				.well.well-sm Local scan for #{locals.scan.metadata.solarsystemname} at #{date_string}
+				.well.well-sm Local scan for #{locals.scan.metadata.solarsystemname}, recorded #{date_string} ago
 		else
 			.alert.alert-danger.fade.in
 				button.close(type="button", data-dismiss="alert", aria-hidden="true") x 

@@ -84,7 +84,7 @@ module.exports = (function() {
 				if(r[0].cnt == 0) {
 					var dscan_rows = _.map(results_num, function(x) { return { type_id: x[0], num: x[1], dscan_id: dscan_id} })
 					var dscan_ent = [ {dscan_id:dscan_id, solarsystem_id:solarsystem_id, character_id:char_id, scan_date:scan_date}]
-
+					logger.info("Dscan ent: " + dscan_ent)
 					cache_objs_to_db(dscan_rows, "localscan.dscan_contents", function(err) { 
 						cache_objs_to_db(dscan_ent, "localscan.dscan_history", function(err) { final(dscan_id, err) } )
 					} )					
