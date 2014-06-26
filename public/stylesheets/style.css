@@ -19,7 +19,9 @@ body {
 }
 .nav-tabs > li > a {
   padding: 5px;
-  height: 55px;
+}
+.progress {
+  margin-bottom: 5px;
 }
 .well {
   margin-bottom: 10px;
@@ -63,6 +65,9 @@ body {
 }
 .progress {
   background-color: #f0f0f0;
+}
+.panel-group {
+  margin-bottom: 5px;
 }
 .alert {
   margin: 10px 1px 10px 1px;
