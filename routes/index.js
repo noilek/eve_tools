@@ -301,7 +301,7 @@ router.post('/d_scan', function( req, res, next ) {
 	if(! solar_system_name && req.headers.eve_solarsystemid) {
 		solar_system_name = req.headers.eve_solarsystemname
 		solar_system_id = req.headers.eve_solarsystemid
-	} else {
+	} else if(solar_system_name) {
 		var old_func = final_func
 		final_func = function(err, results) {
 			if(err) {
@@ -313,7 +313,7 @@ router.post('/d_scan', function( req, res, next ) {
 				if(ss_err) {
 					next(err)
 					return
-				}
+				}				
 				solar_system_id = ss_results[0].solarSystemId
 				logger.info("got solarSystemId: " +solar_system_id)
 				old_func(err,results)
@@ -416,10 +416,12 @@ router.get('/blt', function(req, res, next) {
 
 			contracts = _.filter(contracts, function(x) { return x.status == "Outstanding" && x.type == "Courier"})
 			var station_ids = []
+			var destination_stations = {}
 			for( i in contracts) {
 				var contract = contracts[i]
 				station_ids.push(contract.startStationID)
 				station_ids.push(contract.endStationID)
+				destination_stations[contract.startStationID] = contract.endStationID
 			}
 			var station_query = mysql.format('select stationID, stationName, solarSystemId from evedb.staStations s where s.`stationID` in (?)', [ station_ids ])
 			mysql_pool.query(station_query, function(err, result) {
@@ -427,11 +429,15 @@ router.get('/blt', function(req, res, next) {
 					next(err)
 					return
 				}
-				var station_map = _.chain(result).map(function(x) { return [ x.stationID, { name: x.stationName, system:x.solarSystemId } ] }).object().value()
-				var station_lookup = _.object([station_ids, station_ids])
+				var station_map = _.chain(result).map(function(x) { return [ x.stationID, { name: x.stationName, system:x.solarSystemId } ] }).object().value()				
 				for(i in outposts) {
 					var outpost = outposts[i]
 					station_map[outpost.stationID] = {name: outpost.stationName, system:outpost.solarSystemId}
+				}
+
+				var destination_systems = {}
+				for(var start in destination_stations) {
+					destination_systems[station_map[start].system] = station_map[destination_stations[start]].system
 				}
 				contracts.sort(function(a,b) { 
 					if( a.startStationID == b.startStationID ) {
