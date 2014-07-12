@@ -22,7 +22,7 @@ mixin results_table(dscan, counts, treemap_data)
 	-	return rgb;
 	-}	
 	-function simplify(name) {
-	-	var pairs = [ ["Medium","Med"], ["Small", "Sm"], ["Large","Lrg"], ["Mobile", "Mobl"], ["Battery", "Batt"], ["Array", "Arr" ], ["Neutralizing", "Neut"], ["Webification", "Web"], ["Control Tower", "Tower"], ["Infrastructure", "Infra"], ["Corporate", "Corp"], ["Ship Maintenance Arr", "SMA" ], ["Scrambling", "Scram"], ["Secure ", ""], ["Interceptor", "Inty"], ["Electronic Warfare", "ECM"], ["Structure", "Struct"], ["Sovereignty", "Sov"], ["Territorial Claim Unit", "TCU"], ["Sovereignty Blockade Unit", "SBU"], [" Office", ""], ["Dreadnought", "Dread"], ["Rookie Ship", "Rookie"], ["Combat Battlecruiser", "C. Btl Cruiser"] ]
+	-	var pairs = [ ["Medium","Med"], ["Small", "Sm"], ["Large","Lrg"], ["Mobile", "Mobl"], ["Battery", "Batt"], ["Array", "Arr" ], ["Neutralizing", "Neut"], ["Webification", "Web"], ["Control Tower", "Tower"], ["Infrastructure", "Infra"], ["Corporate", "Corp"], ["Ship Maintenance Arr", "SMA" ], ["Scrambling", "Scram"], ["Secure ", ""], ["Interceptor", "Inty"], ["Electronic Warfare", "ECM"], ["Structure", "Struct"], ["Sovereignty", "Sov"], ["Territorial Claim Unit", "TCU"], ["Sovereignty Blockade Unit", "SBU"], [" Office", ""], ["Dreadnought", "Dread"], ["Rookie Ship", "Rookie"]]
 	-   for( var i in pairs ) {
 	-		var pair = pairs[i]
 	-		name = name.replace(pair[0],pair[1]) // I am naughty, this is n^2.  fortunately the strings are relatively short.
@@ -53,6 +53,8 @@ mixin results_table(dscan, counts, treemap_data)
 					- groups.sort(function(a,b) { return locals.counts.group[a] < locals.counts.group[b] ? 1 : -1 } )
 					- var chunks = locals._.groupBy( groups, function(x, y) { return Math.floor( y / 3 )}) 
 					- var biggestGroup = locals.counts.group[groups[0]]
+					- var totalInGroup = locals._.reduce(groups, function( num, group ) { return locals.counts.group[group] + num }, 0)
+
 					each chunk in chunks
 						.row
 							.col-xs-offset-1
@@ -71,6 +73,7 @@ mixin results_table(dscan, counts, treemap_data)
 									-var current_group = { children:[], data:{ size:"12px", "$area" : 0 },id:"tm"+group_uuid, name:simplify(group_name) + " (" + groupCount.toString() + ")" }
 
 									-current_category.children.push(current_group)
+									-var percent = groupCount/totalInGroup * 100
 									.col-xs-4
 										.panel-group
 											.panel.panel-info
@@ -78,7 +81,9 @@ mixin results_table(dscan, counts, treemap_data)
 													a(href="##{group_uuid}", data-toggle="collapse", data-parent="#accordian", style="font-size:16px", class=color)
 														span.glyphicon.glyphicon-chevron-right
 														=" " + simplify(group_name)
-														span.pull-right=groupCount
+														span &nbsp; (#{groupCount})
+														.progress(style="width:60px;float:right")
+															.progress-bar.progress-bar(role="progressbar", aria-valuenow=groupCount, aria-valuemin=0, aria-valuemax=totalInGroup, style="width:#{percent}%;background-color:#ff5522") #{percent.toFixed(1)}% 
 												.panel-collapse.collapse(id=group_uuid, class=dscan_result == "Ship" ? "in" : "")
 													div(id="restm#{group_uuid}")
 														-var count = 0

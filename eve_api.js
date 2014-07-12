@@ -151,100 +151,108 @@ module.exports = (function() {
 
 			var cache_cut_off = new Date()
 			cache_cut_off.setTime( cache_cut_off.getTime() - 7 * 24 * 60 * 60 * 1000 )
-			var characters_query = mysql.format("select c.* from localscan.character_sheets c where `character` in (?)", 
-				[ all_characters])
 
-			mysql_pool.query(characters_query, function(e,matched) {
+			var delete_query = mysql.format("delete from localscan.character_sheets where retrieved < ?", [cache_cut_off])
+			mysql_pool.query(delete_query, function(e,result) {
 				if(e) {
-					final([], [], e)
+					final([],[],e)
+					return
 				}
-				for (rowidx in matched) {
-					row = matched[rowidx]
-					character_sheets_cache[row.character.toUpperCase()] = row;
-				}
+				var characters_query = mysql.format("select c.* from localscan.character_sheets c where `character` in (?)", 
+					[ all_characters])
 
-				for (char_idx in all_characters) {
-					var character = all_characters[char_idx]
-					if(character in character_sheets_cache) {
-						characterSheets.push(character_sheets_cache[character])
-					} else {
-						needed_characters.push(character)
+				mysql_pool.query(characters_query, function(e,matched) {
+					if(e) {
+						final([], [], e)
 					}
-				}
-
-				if(needed_characters.length == 0 ) {
-					final(characterSheets, all_characters, e);
-				}
-
-				function chunk(arr, factor) {
-					var splitCharacters = []
-					arr = arr.slice(0);
-					while( arr.length ) {
-						splitCharacters.push(arr.slice(0,factor));
-						arr.splice(0,factor);
+					for (rowidx in matched) {
+						row = matched[rowidx]
+						character_sheets_cache[row.character.toUpperCase()] = row;
 					}
-					return(splitCharacters);
-				}
-				
-				var splitCharacters = chunk(needed_characters, 100);
 
-				var pool = { maxSockets: 40 };
-				splitCharacters.forEach(function(split) {
-					var requestString = "https://api.eveonline.com/eve/CharacterID.xml.aspx?names=" + encodeURIComponent(split.join());
-					var groups = 0;
-					request({ pool:pool, url:requestString}, function(err, response, body) {
-						groups = groups + 1;
+					for (char_idx in all_characters) {
+						var character = all_characters[char_idx]
+						if(character in character_sheets_cache) {
+							characterSheets.push(character_sheets_cache[character])
+						} else {
+							needed_characters.push(character)
+						}
+					}
+					logger.info('need to get %d', needed_characters.length)
+					if(needed_characters.length == 0 ) {
+						final(characterSheets, all_characters, e);
+					}
 
-						xml2js.parseString(body, function( err, character_ids ) {
-							if(err) {
-								final([], [], err)
-							}
-							var charactersToIds = {}
-							var idsToCharacters = {}
-							var rows = character_ids.eveapi.result[0].rowset[0].row
-							var ids = []
-							for ( row in rows) {
-								var charRow = rows[row]["$"]
-								charactersToIds[charRow.name] = charRow.characterID;
-								idsToCharacters[charRow.characterID] = charRow.name;
-								ids.push(charRow.characterID);
-							}
+					function chunk(arr, factor) {
+						var splitCharacters = []
+						arr = arr.slice(0);
+						while( arr.length ) {
+							splitCharacters.push(arr.slice(0,factor));
+							arr.splice(0,factor);
+						}
+						return(splitCharacters);
+					}
+					
+					var splitCharacters = chunk(needed_characters, 100);
 
-							ids.forEach(function(character_id) {
-								var character_sheet_req = "https://api.eveonline.com/eve/CharacterInfo.xml.aspx?characterID=" + character_id;
-								request({ pool:pool, url: character_sheet_req }, function(err, response, body) {
-									xml2js.parseString(body, function( err, sheet ) {
-										if(err) {
-											final([],[],err)
-										}
-										if(!('result' in sheet.eveapi)) {
-											all_characters.splice( all_characters.indexOf( idsToCharacters[character_id] ), 1)
-										} else {
-											sheet = sheet.eveapi.result[0];
-											var sheet_data = {
-												corporation_id: sheet.corporationID,
-												corporation: sheet.corporation,
-												alliance_id: sheet.allianceID,
-												alliance: sheet.alliance, // ought to add first start date to capture age
-												character_id: character_id,
-												character: idsToCharacters[character_id]
+					var pool = { maxSockets: 40 };
+					splitCharacters.forEach(function(split) {
+						var requestString = "https://api.eveonline.com/eve/CharacterID.xml.aspx?names=" + encodeURIComponent(split.join());
+						var groups = 0;
+						request({ pool:pool, url:requestString}, function(err, response, body) {
+							groups = groups + 1;
+
+							xml2js.parseString(body, function( err, character_ids ) {
+								if(err) {
+									final([], [], err)
+								}
+								var charactersToIds = {}
+								var idsToCharacters = {}
+								var rows = character_ids.eveapi.result[0].rowset[0].row
+								var ids = []
+								for ( row in rows) {
+									var charRow = rows[row]["$"]
+									charactersToIds[charRow.name] = charRow.characterID;
+									idsToCharacters[charRow.characterID] = charRow.name;
+									ids.push(charRow.characterID);
+								}
+
+								ids.forEach(function(character_id) {
+									var character_sheet_req = "https://api.eveonline.com/eve/CharacterInfo.xml.aspx?characterID=" + character_id;
+									request({ pool:pool, url: character_sheet_req }, function(err, response, body) {
+										xml2js.parseString(body, function( err, sheet ) {
+											if(err) {
+												final([],[],err)
 											}
-											sheets_to_cache.push( sheet_data );
-											characterSheets.push( sheet_data );
-										}
-										if(characterSheets.length == all_characters.length) {
-											var scan_date = new Date()
-											sheets_to_cache = sheets_to_cache.map( function(x) { x['retrieved'] = scan_date; return x });
-											cache_objs_to_db(sheets_to_cache, 'localscan.character_sheets', function(err) {
-												final(characterSheets, all_characters, err);
-											} );
-										}
-									} );
+											if(!('result' in sheet.eveapi)) {
+												all_characters.splice( all_characters.indexOf( idsToCharacters[character_id] ), 1)
+											} else {
+												sheet = sheet.eveapi.result[0];
+												var sheet_data = {
+													corporation_id: sheet.corporationID,
+													corporation: sheet.corporation,
+													alliance_id: sheet.allianceID,
+													alliance: sheet.alliance, // ought to add first start date to capture age
+													character_id: character_id,
+													character: idsToCharacters[character_id]
+												}
+												sheets_to_cache.push( sheet_data );
+												characterSheets.push( sheet_data );
+											}
+											if(characterSheets.length == all_characters.length) {
+												var scan_date = new Date()
+												sheets_to_cache = sheets_to_cache.map( function(x) { x['retrieved'] = scan_date; return x });
+												cache_objs_to_db(sheets_to_cache, 'localscan.character_sheets', function(err) {
+													final(characterSheets, all_characters, err);
+												} );
+											}
+										} );
+									});
 								});
-							});
-						} );
-					});
-				} );
+							} );
+						});
+					} );
+				});
 			});
 		}
 	}
