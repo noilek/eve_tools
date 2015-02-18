@@ -12,3 +12,6 @@ You'll need to "npm install" to bootstrap, then you can use:
 startup.sh <environment>
 
 where <environment> is represented in configs/<environment>.json
+
+Licensed under Mozilla public license 2.0 https://www.mozilla.org/MPL/2.0/
+All attributions should be directed to Robert Waugh
