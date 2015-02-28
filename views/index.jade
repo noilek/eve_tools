@@ -18,4 +18,9 @@ block content
 		when "activity"
 			+activity()
 		default
-			
+			p This will take the names in local or the contents of a dscan and summarize them. Select a name in local or a dscan result, hit control-a, control-c to copy them all to clipboard. Then control-v in the below area.
+			p
+				form(action="/scan" method="post")
+					textarea.form-control(rows=10, name="paste",width="95%", autofocus="autofocus")
+					p
+					button(type="submit", class="btn btn-primary") Analyze
