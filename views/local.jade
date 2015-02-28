@@ -147,7 +147,7 @@ mixin render_pilot(pilot, pilot_id)
 			a(href="http://eve-search.com/search/author/#{encodeURIComponent(pilot)}") search
 
 mixin render_alliances_table(alliances, alliance_names, counts, ids)
-	#accordian.panel-group
+	#accordian.panel-group.container-fluid
 		each alliance in alliance_names
 			- var alliance_uuid = locals.uuid()
 			.row
@@ -161,7 +161,7 @@ mixin render_alliances_table(alliances, alliance_names, counts, ids)
 								span.badge.pull-right= counts.alliances[alliance]
 						- var corp_names = Object.keys(alliances[alliance])
 						- corp_names.sort(function(a,b) { return counts.corps[a] < counts.corps[b] ? 1 : (counts.corps[a] == counts.corps[b] ? a.localeCompare(b) : -1) })
-						.panel-collapse.collapse(id="#{alliance_uuid}")
+						.panel-collapse.collapse.container-fluid(id="#{alliance_uuid}")
 							each corp in corp_names
 								- var corp_uuid = locals.uuid()
 								.row
