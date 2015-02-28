@@ -247,7 +247,7 @@ router.get('/dscan_render', function(req, res, next) {
 	} )
 })
 
-router.post('/d_scan', function( req, res, next ) {
+function process_dscan(req, res, next) {
 	var solar_system_name = null
 	var solar_system_id = null
 	var final_func = function( err, results ) {
@@ -279,7 +279,7 @@ router.post('/d_scan', function( req, res, next ) {
 
 
 	var filter_blank = function(x) { return x.length == 3 }
-	var all_scan_results = req.body.dscan.split("\n").map( function(x) { return x.trim().split("\t") }).filter(filter_blank).map( function(x) {
+	var all_scan_results = req.body.paste.split("\n").map( function(x) { return x.trim().split("\t") }).filter(filter_blank).map( function(x) {
 		return { name: x[0], type_name: x[1], distance: x[2] }
 	});
 
@@ -330,7 +330,7 @@ router.post('/d_scan', function( req, res, next ) {
 	var lookup_sql = mysql.format("select typeName, typeId from evedb.invTypes t where typeName in (?)", [lookup_keys])
 
 	mysql_pool.query(lookup_sql, final_func)
-})
+}
 
 router.get('/activity', function( req, res, next) {
 	logger.info(
@@ -458,7 +458,8 @@ router.get('/blt', function(req, res, next) {
 		})
 	})
 })
-router.post('/local_scan', function(req, res, next) {
+
+function process_local(req, res, next) {
 	function final(foundSheets, all_characters, err) {
 		if(err) {
 			next(err)
@@ -492,7 +493,7 @@ router.post('/local_scan', function(req, res, next) {
 			res.redirect(endpoint) 
 		});
 	}
-	var all_characters = req.body.scan.split("\n").map( function(x) { return x.trim().toUpperCase() }).filter( function(x) { return x.length > 0 });
+	var all_characters = req.body.paste.split("\n").map( function(x) { return x.trim().toUpperCase() }).filter( function(x) { return x.length > 0 });
 	all_characters = _.uniq(all_characters)
 	if( all_characters.length == 0 ) {
 		logger.info('query="%s" : empty-scan : ip="%s"', req.path, req.query.scan_id, req.ip )
@@ -505,6 +506,15 @@ router.post('/local_scan', function(req, res, next) {
 	} catch(err) {
 		next(err)
 		return
+	}
+};
+
+router.post('/scan', function(req, res, next) {
+	var num_cols = req.body.paste.split("\n")[0].split("\t").length;
+	if (num_cols == 3) {
+		process_dscan(req, res, next);
+	} else {
+		process_local(req, res, next);
 	}
 });
 

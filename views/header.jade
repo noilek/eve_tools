@@ -12,29 +12,15 @@ mixin header(active)
 					ul.nav.navbar-nav
 						li.dropdown(class=active==="local" ? "active" : "")
 							a(href="#", class="dropdown-toggle" data-toggle="dropdown") 
-								span.glyphicon.glyphicon-user
-								&nbsp;Local Scan &nbsp
-								b.caret
-							ul.wider-dropdown.dropdown-menu
-								li This will take the names in local and summarize them.  Select the name list in local, hit control-a, control-c to copy them all to clipboard. Then control-v in the below area.
-								li.divider
-								li
-									form(action="/local_scan?section=local" method="post")
-										textarea.form-control(rows=10, name="scan",width="95%")
-										p
-										button(type="submit", class="btn btn-primary") Scan Local
-						li.dropdown(class=active==="dscan" ? "active" : "")
-							a(href="#", class="dropdown-toggle" data-toggle="dropdown") 
 								span.glyphicon.glyphicon-screenshot
-								&nbsp;D Scan &nbsp
+								&nbsp; Scan &nbsp
 								b.caret
 							ul.wider-dropdown.dropdown-menu
-								li This will take the output of a dscan and summarize it.  Select the dscan table, hit control-a, control-c to copy them all to clipboard. Then control-v in the below area.
+								li This will take the names in local or the contents of a dscan and summarize them. Select a name in local or a dscan result, hit control-a, control-c to copy them all to clipboard. Then control-v in the below area.
 								li.divider
 								li
-									form(action="/d_scan?section=dscan" method="post")
-										textarea.form-control(rows=10, name="dscan",width="95%")
+									form(action="/scan" method="post")
+										textarea.form-control(rows=10, name="paste",width="95%")
 										p
-										button(type="submit", class="btn btn-primary") Analyze D Scan
-
+										button(type="submit", class="btn btn-primary") Analyze
 									
