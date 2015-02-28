@@ -48,7 +48,7 @@ mixin results_table(dscan, counts, treemap_data)
 						span.glyphicon.glyphicon-chevron-right
 						=" " + dscan_result
 						span.pull-right= category_count
-				.panel-collapse.collapse.in(id="#{class_uuid}")
+				.panel-collapse.collapse.in.container-fluid(id="#{class_uuid}")
 					- var groups = Object.keys(scan_class)
 					- groups.sort(function(a,b) { return locals.counts.group[a] < locals.counts.group[b] ? 1 : -1 } )
 					- var chunks = locals._.groupBy( groups, function(x, y) { return Math.floor( y / 3 )}) 
@@ -93,7 +93,7 @@ mixin results_table(dscan, counts, treemap_data)
 															-var num = Math.log(Math.pow(type_row.num,2)+4)
 															-var type_brightness = ColorLuminance(brightness, (1-type_row.num/largest.num))
 
-															div(id="res{type_name}")
+															div.container-fluid(id="res{type_name}")
 																.row(style="background-color:#{count++%2 == 0 ? '#abcdef' : '#dddddd'}")
 																	-var triple = rgb_to_triple(type_brightness)
 																	-var node_class = "node"
